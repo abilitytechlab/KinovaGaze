@@ -1,0 +1,90 @@
+Setting up PI:
+
+Install Ubuntu Server 20.04 32-bit LTS with SSH
+Install ROS:
+	Setup sources: 					sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
+	Install curl: 					sudo apt install curl
+	Setup keys:						curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
+	Update apt library:				sudo apt update
+	Install ros-noetic-ros-base:	sudo apt install ros-noetic-ros-base
+	Setup auto source ROS:			echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
+									source ~/.bashrc
+	Setup ROS install dependencies:	sudo apt install python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool build-essential
+	Setup rosdep:					sudo rosdep init
+									rosdep update
+Setup environment:
+	Create catkin workspace:		mkdir -p ~/catkin_ws/src
+									cd ~/catkin_ws/
+									catkin_make
+	Source catkin workspace:		echo "source ~/catkin_ws/devel/setup.bash" >> ~/.bashrc
+									source ~/.bashrc
+Install kinova-ros noetic:
+	Clone into src:					cd ~/catkin_ws/src
+									git clone -b noetic-devel https://github.com/Kinovarobotics/kinova-ros.git
+	Install kinova_movetit:			sudo apt-get install ros-noetic-moveit
+									sudo apt-get install ros-noetic-trac-ik
+	Install dependencies:			sudo apt install libopenblas-dev ros-noetic-eigen-conversions
+	Catkin make:					cd ~/catkin_ws
+									catkin_make
+	Copy udev rule for kinova usb:	sudo cp ~/catkin_ws/src/kinova-ros/kinova_driver/udev/10-kinova-arm.rules /etc/udev/rules.d/
+	Install SO files for arm:		mkdir ~/catkin_ws/src/kinova-ros/kinova_driver/lib/arm-linux-gnueabihf
+								?	// download files into folder
+Install rosbridge_suite:			
+									sudo apt-get install ros-noetic-rosbridge-suite
+	Catkin make:				?	catkin_make
+Install kinova eye-control:
+	Clone into src:					cd ~/catkin_ws/src
+									git clone https://github.com/abilitytechlab/kinova.git
+	Install python:					sudo apt install python3-pip
+	Install python dependencies:	cd ~/catkin_ws/src/kinova
+								?	// pip update numpy, pip update cmake? , pip install other stuff??
+									pip install -r requirements.txt
+Install screen to run all services in one SSH session:
+									sudo apt install screen
+Autostart kinovagaze on boot:
+									(crontab -l 2>/dev/null || true; echo "@reboot /home/kinovagaze/catkin_ws/src/kinova/start_kinovagaze.bash ~/kinovagaze/kinovagaze.log 2>&1") | crontab -
+								?	Also add "@reboot dhclient -v" in case of raspberry pi 3
+
+Test installation:	
+	Connect kinova arm via USB, connect power and turn power switch to the upwards position
+	Connect webcam to USB port
+	Reboot system				sudo reboot
+	Connect ethernet cable to PC used as interface
+	Wait for system to boot (~60 seconds)
+	Connect to web interface		http://kinovagaze.local:8000/
+	Home robot arm, then test controls
+
+
+
+See state of kinovagaze:
+	List current services		screen -ls
+		Expected output:
+								There are screens on:
+									1291.GUI_Server (05/21/24 12:34:34)     (Detached)
+									1039.eye_control        (05/21/24 12:34:29)     (Detached)
+									1034.Rosbridge  (05/21/24 12:34:29)     (Detached)
+									1031.Kinova-ROS (05/21/24 12:34:29)     (Detached)
+									
+	See logs:					ls -l ~/kinovagaze
+
+Run kinovagaze via bash script:
+								bash catkin_ws/src/kinova/start_kinovagaze.sh
+
+Stop kinovagaze via bash script:
+								bash catkin_ws/src/kinova/stop_kinovagaze.sh
+	
+Run everything individually:
+	Run Kinova ROS stack		screen -dm -S "Kinova-ROS" bash -c "roslaunch kinova_bringup kinova_robot.launch kinova_robotType:=j2n6s300"
+	Run rosbridge				screen -dm -S "Rosbridge" bash -c "roslaunch rosbridge_server rosbridge_websocket.launch"
+	Run eye_control	node		screen -dm -S "eye_control" bash -c "rosrun eye_control gui_to_kinova"
+	Run GUI server				screen -dm -S "GUI_Server" bash -c "python3 ~/catkin_ws/src/kinova/gui/control_arm.py"
+	
+Stop everything individually:
+	screen -X -S "Kinova-ROS" stuff $'\003'
+	screen -X -S "Rosbridge" stuff $'\003'
+	screen -X -S "eye_control" stuff $'\003'
+	screen -X -S "GUI_Server" stuff $'\003'
+
+
+screen -m -S "rosbridge-listener" bash -c "while true; do rosrun beginner_tutorials rosbridge_listener.py; done"
+screen -m -S "gui_server" bash -c "while true; do python3 ~/catkin_ws/src/beginner_tutorials/gui/gui_server.py; done"

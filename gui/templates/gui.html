@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+    }
+
+    #video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -1;
+    }
+
+    #layout {
+      width: 100vw;
+      height: fit-content;
+      opacity: 0.6;
+
+      display: grid;
+      grid:
+        ". . . . openFingers . closeFingers ." 1fr "forwardLeft forward forwardRight up . pitchUp . rollCounterClockwise " 1fr "left . right .  yawLeft . yawRight . " 1fr "backLeft back backRight down . pitchDown . rollClockwise" 1fr ". onOff home setPoint . getToolPose stop . " 1fr / 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+      grid-template-rows: repeat(5, 1fr);
+      grid-template-columns: repeat(8, 1fr);
+      gap: 8px;
+    }
+
+    #openFingers {
+      grid-area: openFingers;
+    }
+
+    #closeFingers {
+      grid-area: closeFingers;
+    }
+
+    #forwardLeft {
+      grid-area: forwardLeft;
+    }
+
+    #forwardRight {
+      grid-area: forwardRight;
+    }
+
+    #forward {
+      grid-area: forward;
+    }
+
+    #left {
+      grid-area: left;
+    }
+
+    #right {
+      grid-area: right;
+    }
+
+    #back {
+      grid-area: back;
+    }
+
+    #up {
+      grid-area: up;
+    }
+
+    #down {
+      grid-area: down;
+    }
+
+    #backLeft {
+      grid-area: backLeft;
+    }
+
+    #backRight {
+      grid-area: backRight;
+    }
+
+    #rollCounterClockwise {
+      grid-area: rollCounterClockwise;
+    }
+
+    #yawRight {
+      grid-area: yawRight;
+    }
+
+    #pitchUp {
+      grid-area: pitchUp;
+    }
+
+    #pitchDown {
+      grid-area: pitchDown;
+    }
+
+    #rollClockwise {
+      grid-area: rollClockwise;
+    }
+
+    #yawLeft {
+      grid-area: yawLeft;
+    }
+
+    #onOff {
+      grid-area: onOff;
+    }
+
+    #home {
+      grid-area: home;
+    }
+
+    #setPoint {
+      grid-area: setPoint;
+    }
+
+    #getToolPose {
+      grid-area: getToolPose;
+    }
+
+    #stop {
+      grid-area: stop;
+    }
+
+    button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2em;
+      width: 100%;
+      height: 100%;
+    }
+
+    .green {
+      background: green;
+    }
+
+    .red {
+      background: red;
+    }
+  </style>
+
+  <script type="text/javascript" type="text/javascript">
+    // Create ROS object which connects to the locally running ROS
+    var ros = new ROSLIB.Ros({
+      url: 'ws://kinovagaze.local:9090'
+    });
+
+    // Make and call a function to update the ROS status depending on the last update
+    ros.on('connection', function () {
+      document.getElementById("status").innerHTML = "Connected";
+    });
+
+    ros.on('error', function (error) {
+      document.getElementById("status").innerHTML = "Error";
+    });
+
+    ros.on('close', function () {
+      document.getElementById("status").innerHTML = "Closed";
+    });
+
+    // Create a listener for updates to the global /txt_msg parameter
+    var txt_listener = new ROSLIB.Topic({
+      ros: ros,
+      name: '/txt_msg',
+      messageType: 'std_msgs/String'
+    });
+
+    // Subscribe to the txt_listener, update the msg field for every change
+    txt_listener.subscribe(function (m) {
+      document.getElementById("msg").innerHTML = m.data;
+      msg_send("You sent " + m.data);
+    });
+    txt_listener.subscribe(function (m) {
+      document.getElementById("msg").innerHTML = m.data;
+      msg_send("You sent " + m.data);
+    });
+
+    msg_send_listener = new ROSLIB.Topic({
+      ros: ros,
+      name: "kinovagaze/msg_send",
+      messageType: 'std_msgs/String'
+    });
+
+    msg_send = function (text) {
+      var string = new ROSLIB.Message({
+        data: text
+      });
+      msg_send_listener.publish(string);
+    }
+
+    finger_position_set_listener = new ROSLIB.Topic({
+      ros: ros,
+      name: "/kinovagaze/finger_position_set",
+      messageType: 'kinova_msgs/FingerPosition'
+    });
+
+    finger_position_set = function (finger1, finger2, finger3) {
+      var finger_position = new ROSLIB.Message({
+        finger1: finger1,
+        finger2: finger2,
+        finger3: finger3
+      });
+      finger_position_set_listener.publish(finger_position);
+    }
+
+    async function closeFingers() {
+      finger_position_set(100, 100, 100);
+    }
+
+    async function openFingers() {
+      finger_position_set(0, 0, 0);
+    }
+
+    return_home_listener = new ROSLIB.Topic({
+      ros: ros,
+      name: "/kinovagaze/return_home",
+      messageType: 'std_msgs/Empty'
+    });
+
+    return_home = function () {
+      return_home_listener.publish(new ROSLIB.Message());
+    }
+
+    async function returnHome() {
+      return_home();
+    }
+
+    get_tool_pose_listener = new ROSLIB.Topic({
+      ros: ros,
+      name: "/kinovagaze/get_tool_pose",
+      messageType: 'std_msgs/Empty'
+    });
+
+    get_tool_pose = function () {
+      get_tool_pose_listener.publish(new ROSLIB.Message());
+    }
+
+    async function getToolPose() {
+      get_tool_pose();
+    }
+
+    stop_movement_listener = new ROSLIB.Topic({
+      ros: ros,
+      name: "/kinovagaze/stop_movement",
+      messageType: 'std_msgs/Empty'
+    });
+
+    stop_movement = function () {
+      stop_movement_listener.publish(new ROSLIB.Message());
+    }
+
+    async function stopMovement() {
+      stop_movement();
+    }
+
+    tool_move_continuous_listener = new ROSLIB.Topic({
+      ros: ros,
+      name: "/kinovagaze/tool_move_continuous",
+      messageType: 'kinova_msgs/PoseVelocity'
+    });
+
+    tool_move_continuous = function (x = 0, y = 0, z = 0, yaw = 0, pitch = 0, roll = 0) {
+      console.log(x, y, z, yaw, pitch, roll)
+      var move_axis = new ROSLIB.Message({
+        twist_linear_x: x,
+        twist_linear_y: y,
+        twist_linear_z: z,
+        twist_angular_x: yaw,
+        twist_angular_y: pitch,
+        twist_angular_z: roll
+      });
+      console.log(move_axis)
+      tool_move_continuous_listener.publish(move_axis);
+    }
+
+    left = function () {
+      tool_move_continuous(1, 0, 0, 0, 0, 0);
+    }
+
+    right = function () {
+      tool_move_continuous(-1, 0, 0, 0, 0, 0);
+    }
+
+    forward = function () {
+      tool_move_continuous(0, -1, 0, 0, 0, 0);
+    }
+
+    back = function () {
+      tool_move_continuous(0, 1, 0, 0, 0, 0);
+    }
+
+    up = function () {
+      tool_move_continuous(0, 0, 1, 0, 0, 0);
+    }
+
+    down = function () {
+      tool_move_continuous(0, 0, -1, 0, 0, 0);
+    }
+
+    pitchUp = function () {
+      tool_move_continuous(0, 0, 0, -1, 0, 0);
+    }
+
+    pitchDown = function () {
+      tool_move_continuous(0, 0, 0, 1, 0, 0);
+    }
+
+    rollClockwise = function () {
+      tool_move_continuous(0, 0, 0, 0, 0, 1);
+    }
+
+    rollCounterClockwise = function () {
+      tool_move_continuous(0, 0, 0, 0, 0, -1);
+    }
+
+    yawLeft = function () {
+      tool_move_continuous(0, 0, 0, 0, 1, 0);
+    }
+
+    yawRight = function () {
+      tool_move_continuous(0, 0, 0, 0, -1, 0);
+    }
+  </script>
+</head>
+
+<body>
+  <!--<h1>Simple ROS User Interface</h1>
+  <p>Connection status: <span id="status"></span></p>
+  <p>Last /txt_msg received: <span id="msg"></span></p>-->
+
+  <div id="layout">
+    <div id="left">
+      <button onclick="left()">
+        Left
+      </button>
+    </div>
+    <div id="forward">
+      <button onclick="forward()">
+        Forward
+      </button>
+    </div>
+    <div id="right">
+      <button onclick="right()">
+        Right
+      </button>
+    </div>
+    <div id="back">
+      <button onclick="back()">
+        Backwards
+      </button>
+    </div>
+    <div id="up">
+      <button onclick="up()">
+        Up
+      </button>
+    </div>
+    <div id="down">
+      <button onclick="down()">
+        Down
+      </button>
+    </div>
+    <div id="pitchUp">
+      <button onclick="pitchUp()">
+        Pitch Up
+      </button>
+    </div>
+    <div id="pitchDown">
+      <button onclick="pitchDown()">
+        Pitch Down
+      </button>
+    </div>
+    <div id="rollClockwise">
+      <button onclick="rollClockwise()">
+        Roll Clockwise
+      </button>
+    </div>
+    <div id="rollCounterClockwise">
+      <button onclick="rollCounterClockwise()">
+        Roll Counter Clockwise
+      </button>
+    </div>
+    <div id="yawLeft">
+      <button onclick="yawLeft()">
+        Yaw Left
+      </button>
+    </div>
+    <div id="yawRight">
+      <button onclick="yawRight()">
+        Yaw Right
+      </button>
+    </div>
+    <div id="closeFingers">
+      <button onclick="closeFingers()">
+        Close
+      </button>
+    </div>
+    <div id="openFingers">
+      <button onclick="openFingers()">
+        Open
+      </button>
+    </div>
+    <div id="returnHome">
+      <button onclick="returnHome()">
+        Home
+      </button>
+    </div>
+    <div id="getToolPose">
+      <button onclick="getToolPose()">
+        Get Tool Pose
+      </button>
+    </div>
+    <div id="stop">
+      <button onclick="stopMovement()" class="red">
+        Stop
+      </button>
+    </div>
+  </div>
+</body>
+
+<img src="{{ url_for('video_feed')}}" id="video" alt="Livestream">
+
+</html>
