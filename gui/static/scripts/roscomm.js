@@ -61,6 +61,10 @@ finger_position_set = function (finger1, finger2, finger3) {
     finger_position_set_listener.publish(finger_position);
 }
 
+fingerPositionSet = function(fingers) {
+    finger_position_set(fingers[0], fingers[1], fingers[2])
+}
+
 async function closeFingers() {
     finger_position_set(100, 100, 100);
 }
@@ -152,6 +156,10 @@ tool_move_continuous = function (x = 0, y = 0, z = 0, yaw = 0, pitch = 0, roll =
     });
     console.log(move_axis);
     tool_move_continuous_listener.publish(move_axis);
+}
+
+toolMoveContinuous = function(axis) {
+    tool_move_continuous(axis[0], axis[1], axis[2], axis[3], axis[4], axis[5])
 }
 
 left = function () {

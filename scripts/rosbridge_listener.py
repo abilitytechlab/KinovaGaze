@@ -115,6 +115,8 @@ class Kinova_Actions:
         self.kinova_continuous_driver.set_movement(movement)
         
     def tool_move_continuous(self, movement):
+        self.stop_movement(quick=True)
+
         starting_pose = tool_pose_to_EulerXYZ(self.current_tool_pose)
 
         local_movement = rotate_movement_towards_tool(self.current_tool_pose, movement, verbose=True)
@@ -128,13 +130,12 @@ class Kinova_Actions:
             local_movement.twist_angular_z*1.5
         ]
 
-        self.stop_movement()    
         print("Starting continuous motion")
         print(f"Starting pose: \n{starting_pose}")
         print(f"Movement direction: \n{movement}")
         print(f"Local movement direction: \n{movement_direction}")
         try:
-            for i in range(20):
+            for i in range(5):
                 response = self.tool_add_pose_service(
                     starting_pose[0] + i*movement_direction[0],
                     starting_pose[1] + i*movement_direction[1],
@@ -149,6 +150,8 @@ class Kinova_Actions:
 
     def move_to_position(self, pose):
         goal = kinova_msgs.msg.ArmPoseGoal()
+
+        self.stop_movement(quick=True)
         
         goal.pose.header = std_msgs.msg.Header(frame_id=(prefix + '_link_base'))
         goal.pose.pose.position = geometry_msgs.msg.Point(
@@ -184,18 +187,26 @@ class Kinova_Actions:
         except rospy.ServiceException as e:
             print("home_arm service call failed: %s"%e)
 
-    def stop_movement(self, argument = None):
-        print('Stopping all movements')
-        self.kinova_continuous_driver.stop_movement()
-        self.tool_pose_client.cancel_all_goals()
-        self.finger_position_client.cancel_all_goals()
-        for i in range(3):
+    def stop_movement(self, quick=False):
+        loops = 3
+        if(quick != True): 
+            quick = False
+            loops = 5
+        print(f'Stopping all movements, quick = {quick}')
+        for i in range(loops):
+            self.kinova_continuous_driver.stop_movement()
+            self.tool_pose_client.cancel_all_goals()
+            self.finger_position_client.cancel_all_goals()
             try:
                 response = self.tool_clear_trajectories()
                 print(response)
             except rospy.ServiceException as e:
                 print("tool_clear_trajectories service call failed: %s"%e)
             self.kinova_continuous_driver.publish_stop_movement()
+            if(quick == False):
+                print(i)
+                time.sleep(0.05*i)
+
         
         
     def get_tool_pose(self, argument = None):
