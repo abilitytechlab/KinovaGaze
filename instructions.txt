@@ -1,6 +1,37 @@
 Setting up PI:
 
-Install Ubuntu Server 20.04 32-bit LTS with SSH
+Install Ubuntu Server 20.04 32-bit LTS with SSH with username kinovagaze
+Setup ethernet for plug and play:
+	Optional: setup usb tethering:	echo -e "network:\n  version: 2\n  renderer: networkd\n  ethernets:\n    usb0:\n      dhcp4: yes\n      dhcp6: no" >> /etc/netplan/01-network-manager-all.yaml
+	Optional: install utilities:	sudo apt install net-tools network-manager 
+	
+	Install avahi-daemon to access the Pi via kinovagaze.local:
+									sudo apt install avahi-daemon
+									
+	Enable ethernet port with static IP:
+		If /etc/netplan/50-cloud-init.yaml exists:
+									echo -e "    ethernets:\n        eth0:\n            dhcp4: false\n             addresses:             - 192.168.137.1/24 >> /etc/netplan/50-cloud-init.yaml
+		If /etc/netplan/50-cloud-init.yaml does not exist:
+									echo -e "network:\n    ethernets:\n        eth0:\n            dhcp4: false\n             addresses:             - 192.168.137.1/24 >> /etc/netplan/50-cloud-init.yaml
+	After editing /etc/netplan/50-cloud-init.yaml:
+									sudo netplan apply
+									
+	Install DHCP server:			sudo apt install isc-dhcp-server
+	Backup DHCP server config:		sudo mv /etc/dhcp/dhcpd.conf{,.bak}
+	Setup configuration for DHCP server:
+									echo -e "default-lease-time 600;\nmax-lease-time 7200;\nddns-update-style none;\nauthoritative;\n\nsubnet 192.168.137.0 netmask 255.255.255.0 {\n  interface eth0;\n  range 192.168.137.100 192.168.137.200;\n  option routers 192.168.137.1;\n}" | sudo tee /etc/dhcp/dhcpd.conf
+	Backup DHCP server interfaces config:
+									sudo mv /etc/default/isc-dhcp-server{,.bak}
+	Setup configuration for DHCP server interfaces:
+									echo -e "INTERFACESv4=\"eth0\"\nINTERFACESv6=\"\"" | sudo tee /etc/default/isc-dhcp-server
+									
+	After finishing setup:			sudo reboot
+	Check if IP got configured correctly: (This should show that eth0 has ip 192.168.137.1)
+									ip a
+	Check if DHCP server is running: (This should say "Active: active (running)")
+									sudo systemctl status isc-dhcp-server.service
+	Connect ethernet cable to other device and check on that device if it got an IP in range 192.168.137.1:								
+									
 Install ROS:
 	Setup sources: 					sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
 	Install curl: 					sudo apt install curl
@@ -9,7 +40,7 @@ Install ROS:
 	Install ros-noetic-ros-base:	sudo apt install ros-noetic-ros-base
 	Setup auto source ROS:			echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
 									source ~/.bashrc
-	Setup ROS install dependencies:	sudo apt install python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool build-essential
+	Setup ROS install dependencies:	sudo apt install python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool build-essential python-is-python3
 	Setup rosdep:					sudo rosdep init
 									rosdep update
 Setup environment:
@@ -25,20 +56,21 @@ Install kinova-ros noetic:
 									sudo apt-get install ros-noetic-trac-ik
 	Install dependencies:			sudo apt install libopenblas-dev ros-noetic-eigen-conversions
 	Catkin make:					cd ~/catkin_ws
-									catkin_make
+		(j1 prevents out of memory)	catkin_make -j1
 	Copy udev rule for kinova usb:	sudo cp ~/catkin_ws/src/kinova-ros/kinova_driver/udev/10-kinova-arm.rules /etc/udev/rules.d/
 	Install SO files for arm:		mkdir ~/catkin_ws/src/kinova-ros/kinova_driver/lib/arm-linux-gnueabihf
 								?	// download files into folder
 Install rosbridge_suite:			
 									sudo apt-get install ros-noetic-rosbridge-suite
-	Catkin make:				?	catkin_make
+	Catkin make:					catkin_make
 Install kinova eye-control:
 	Clone into src:					cd ~/catkin_ws/src
 									git clone https://github.com/abilitytechlab/kinova.git
 	Install python:					sudo apt install python3-pip
-	Install python dependencies:	cd ~/catkin_ws/src/kinova
-								?	// pip update numpy, pip update cmake? , pip install other stuff??
-									pip install -r requirements.txt
+	Install python dependencies:	cd ~/catkin_ws/src/kinovagaze
+		(update outdated packages	pip install numpy --upgrade
+		otherwise installs fail)	pip install cmake --upgrade
+		Now install dependencies	pip install -r requirements.txt
 Install screen to run all services in one SSH session:
 									sudo apt install screen
 Autostart kinovagaze on boot:
@@ -74,17 +106,23 @@ Stop kinovagaze via bash script:
 								bash catkin_ws/src/kinova/stop_kinovagaze.sh
 	
 Run everything individually:
-	Run Kinova ROS stack		screen -dm -S "Kinova-ROS" bash -c "roslaunch kinova_bringup kinova_robot.launch kinova_robotType:=j2n6s300"
-	Run rosbridge				screen -dm -S "Rosbridge" bash -c "roslaunch rosbridge_server rosbridge_websocket.launch"
-	Run eye_control	node		screen -dm -S "eye_control" bash -c "rosrun eye_control gui_to_kinova"
-	Run GUI server				screen -dm -S "GUI_Server" bash -c "python3 ~/catkin_ws/src/kinova/gui/control_arm.py"
+	Run Kinova ROS stack		screen -dm -S "kinova-ros" bash -c "roslaunch kinova_bringup kinova_robot.launch kinova_robotType:=j2n6s300"
+	Run rosbridge				screen -dm -S "rosbridge" bash -c "roslaunch rosbridge_server rosbridge_websocket.launch"
+	Run eye_control	node		screen -dm -S "rosbridge_listener" bash -c "rosrun kinovagaze rosbridge_listener.py"
+	Run GUI server				screen -dm -S "gui_server" bash -c "python3 ~/catkin_ws/src/kinovagaze/gui/gui_server.py"
 	
 Stop everything individually:
-	screen -X -S "Kinova-ROS" stuff $'\003'
-	screen -X -S "Rosbridge" stuff $'\003'
-	screen -X -S "eye_control" stuff $'\003'
-	screen -X -S "GUI_Server" stuff $'\003'
+	screen -X -S "kinova-ros" stuff $'\003'
+	screen -X -S "rosbridge" stuff $'\003'
+	screen -X -S "rosbridge_listener" stuff $'\003'
+	screen -X -S "gui_server" stuff $'\003'
 
 
-screen -m -S "rosbridge-listener" bash -c "while true; do rosrun beginner_tutorials rosbridge_listener.py; done"
-screen -m -S "gui_server" bash -c "while true; do python3 ~/catkin_ws/src/beginner_tutorials/gui/gui_server.py; done"
+screen -m -S "rosbridge_listener" bash -c "while true; do rosrun kinovagaze rosbridge_listener.py; done"
+screen -m -S "gui_server" bash -c "while true; do python3 ~/catkin_ws/src/kinovagaze/gui/gui_server.py; done"
+
+
+rostopic pub -r 100 /j2n6s300_driver/in/cartesian_velocity kinova_msgs/PoseVelocity "{twist_linear_x: 0.0, twist_linear_y: 0.0, twist_linear_z: 0.0, twist_angular_x: 0.0, twist_angular_y: 0.0, twist_angular_z: 10.0}" 
+rosservice call /j2n6s300_driver/in/home_arm
+
+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

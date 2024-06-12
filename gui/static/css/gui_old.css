@@ -1,0 +1,134 @@
+body {
+    margin: 0;
+}
+
+#video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+}
+
+#layout {
+    width: 100vw;
+    height: fit-content;
+    opacity: 0.6;
+
+    display: grid;
+    grid:
+        ". . . . openFingers . closeFingers ." 1fr "forwardLeft forward forwardRight up . pitchUp . rollCounterClockwise " 1fr "left . right .  yawLeft . yawRight . " 1fr "backLeft back backRight down . pitchDown . rollClockwise" 1fr ". onOff home setPoint . getToolPose stop . " 1fr / 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+    grid-template-rows: repeat(5, 1fr);
+    grid-template-columns: repeat(8, 1fr);
+    gap: 8px;
+}
+
+#openFingers {
+    grid-area: openFingers;
+}
+
+#closeFingers {
+    grid-area: closeFingers;
+}
+
+#forwardLeft {
+    grid-area: forwardLeft;
+}
+
+#forwardRight {
+    grid-area: forwardRight;
+}
+
+#forward {
+    grid-area: forward;
+}
+
+#left {
+    grid-area: left;
+}
+
+#right {
+    grid-area: right;
+}
+
+#back {
+    grid-area: back;
+}
+
+#up {
+    grid-area: up;
+}
+
+#down {
+    grid-area: down;
+}
+
+#backLeft {
+    grid-area: backLeft;
+}
+
+#backRight {
+    grid-area: backRight;
+}
+
+#rollCounterClockwise {
+    grid-area: rollCounterClockwise;
+}
+
+#yawRight {
+    grid-area: yawRight;
+}
+
+#pitchUp {
+    grid-area: pitchUp;
+}
+
+#pitchDown {
+    grid-area: pitchDown;
+}
+
+#rollClockwise {
+    grid-area: rollClockwise;
+}
+
+#yawLeft {
+    grid-area: yawLeft;
+}
+
+#onOff {
+    grid-area: onOff;
+}
+
+#home {
+    grid-area: home;
+}
+
+#setPoint {
+    grid-area: setPoint;
+}
+
+#getToolPose {
+    grid-area: getToolPose;
+}
+
+#stop {
+    grid-area: stop;
+}
+
+button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2em;
+    width: 100%;
+    height: 100%;
+}
+
+.green {
+    background: green;
+}
+
+.red {
+    background: red;
+}

@@ -16,3 +16,9 @@ screen -dm -S "gui_server" -L -Logfile "kinovagaze/gui_server.log" bash -c "whil
 
 echo "Started kinovagaze on separate screen instances."
 screen -ls
+
+sleep 10
+service isc-dhcp-server restart
+
+sleep 1
+
