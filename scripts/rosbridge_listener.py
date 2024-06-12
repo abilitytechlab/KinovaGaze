@@ -122,9 +122,9 @@ class Kinova_Actions:
         local_movement = rotate_movement_towards_tool(self.current_tool_pose, movement, verbose=True)
 
         movement_direction = [
-            local_movement.twist_linear_x*.05,
-            local_movement.twist_linear_y*.05,
-            local_movement.twist_linear_z*.05,
+            local_movement.twist_linear_x*.1,
+            local_movement.twist_linear_y*.1,
+            local_movement.twist_linear_z*.1,
             local_movement.twist_angular_x*1.5,
             local_movement.twist_angular_y*1.5,
             local_movement.twist_angular_z*1.5
@@ -135,7 +135,7 @@ class Kinova_Actions:
         print(f"Movement direction: \n{movement}")
         print(f"Local movement direction: \n{movement_direction}")
         try:
-            for i in range(5):
+            for i in range(10):
                 response = self.tool_add_pose_service(
                     starting_pose[0] + i*movement_direction[0],
                     starting_pose[1] + i*movement_direction[1],

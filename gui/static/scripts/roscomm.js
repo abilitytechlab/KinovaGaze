@@ -135,7 +135,7 @@ tool_move_position = function (x = 0, y = 0, z = 0, yaw = 0, pitch = 0, roll = 0
 }
 
 positionForward = function () {
-    tool_move_position(0, -0.4, 0.5, 90, 0, 0);
+    tool_move_position(0.2, -0.6, 0.3, 90, 0, 0);
 }
 
 tool_move_continuous_listener = new ROSLIB.Topic({
