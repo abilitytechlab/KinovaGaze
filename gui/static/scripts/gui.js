@@ -99,7 +99,7 @@ function createAxisButtons() {
   let webcamX = 0
   let webcamY = (height - webcamHeight)/2
   let grid = new GazeControl.Grid(webcamX, webcamY, webcamWidth, webcamHeight, 5, 5)
-  let dwellDelay = 250
+  let dwellDelay = 500
 
   axisButtons = []
 
