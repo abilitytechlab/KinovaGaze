@@ -1,30 +1,36 @@
-let GazeControl = {};
+GazeControl = {};
 {
     GazeControl.Cursor = class {
         enabled = true
+        buttons = [1, 2, 3]
 
-        constructor() {
-            noCursor()
+        constructor(p, buttons) {
+            this.p = p
+            this.buttons = buttons
+            this.p.noCursor()
             this.x = -100
             this.y = -100
         }
 
         display() {
-            fill(255)
-            circle(this.x, this.y, 20)
-            fill(0)
-            circle(this.x, this.y, 2)
+            this.p.fill(255)
+            this.p.circle(this.x, this.y, 20)
+            this.p.fill(0)
+            this.p.circle(this.x, this.y, 2)
         }
 
         cursorMoved(x, y) {
             this.x = x
             this.y = y
             this.update()
+            if(typeof recorder !== 'undefined') {
+                recorder.write(["Cursor Moved", this.x, this.y])
+            }
         }
 
         update() {
             if(this.enabled) {
-                for (const button of buttons) {
+                for (const button of this.buttons) {
                     if (this.x > button.x
                         && this.x < button.x + button.w
                         && this.y > button.y
@@ -41,13 +47,19 @@ let GazeControl = {};
 
         disable() {
             this.enabled = false
-            for (const button of buttons) {
+            for (const button of this.buttons) {
                 button.unHover()
+            }
+            if(typeof recorder !== 'undefined') {
+                recorder.write(["Cursor Disabled"])
             }
         }
 
         enable() {
             this.enabled = true
+            if(typeof recorder !== 'undefined') {
+                recorder.write(["Cursor Enabled"])
+            }
         }
     }
 
@@ -58,9 +70,8 @@ let GazeControl = {};
         dwelled = false
         active = false
         
-        
-
-        constructor(x, y, w, h, name = "", label = undefined, dwellDelay = 1000, defaultColor = color(200, 50, 0), hoverColor = color(200, 200, 50), activatedColor = color(0, 200, 50)) {
+        constructor(p, x, y, w, h, name = "", label = undefined, dwellDelay = 1000, defaultColor = p.color(200, 50, 0), hoverColor = p.color(200, 200, 50), activatedColor = p.color(0, 200, 50)) {
+            this.p = p
             this.x = x
             this.y = y
             this.w = w
@@ -77,35 +88,47 @@ let GazeControl = {};
             this.activatedColor = activatedColor
         }
 
-        update() {
+        update(dt) {
             if (this.dwelled == true && this.active == false && this.enabled == true && this.visible == true) {
                 if (this.dwellProgress >= this.dwellDelay) {
                     this.activate()
                 } else {
                     this.dwellProgress += dt
                     // print(dt + " " + this.dwellProgress + " " + this.dwellDelay)
-                    this.currentColor = lerpColor(this.defaultColor, this.hoverColor, this.dwellProgress / this.dwellDelay)
+                    this.currentColor = this.p.lerpColor(this.defaultColor, this.hoverColor, this.dwellProgress / this.dwellDelay)
                 }
+            } else if(this.active == true) {
+                this.currentColor = this.p.lerpColor(this.defaultColor, this.activatedColor, this.dwellProgress / this.dwellDelay)
             }
+            this.onUpdate()
         }
 
         display() {
             if(this.visible) {
                 let fillColor = this.currentColor
                 if(!this.enabled) {
-                    fillColor = lerpColor(fillColor, color(64, 64, 64, 64), 0.5)
+                    fillColor = this.p.lerpColor(fillColor, this.p.color(64, 64, 64, 64), 0.5)
                 }
-                fill(fillColor)
-                rect(this.x, this.y, this.w, this.h)
-                textAlign(CENTER, CENTER)
-                fill(0)
-                text(this.label, this.x, this.y, this.w, this.h)
+                this.p.fill(fillColor)
+                this.p.rect(this.x, this.y, this.w, this.h)
+                this.p.textAlign(this.p.CENTER, this.p.CENTER)
+                this.p.fill(0)
+                this.p.text(this.label, this.x, this.y, this.w, this.h)
             }
         }
 
+        onUpdate() {
+
+        }
+
         hover() {
-            this.dwelled = true
-            this.onHover()
+            if(this.enabled == true && this.visible == true) {
+                this.dwelled = true
+                this.onHover()
+                if(typeof recorder !== 'undefined') {
+                    recorder.write(["Button Hovered", this.name])
+                }
+            }
         }
 
         onHover() {
@@ -118,6 +141,9 @@ let GazeControl = {};
                 this.reset()
             }
             this.onUnhover()
+            if(typeof recorder !== 'undefined') {
+                recorder.write(["Button Unhovered", this.name])
+            }
         }
 
         onUnhover() {
@@ -128,6 +154,9 @@ let GazeControl = {};
             this.currentColor = this.activatedColor
             this.active = true
             this.onActivate()
+            if(typeof recorder !== 'undefined') {
+                recorder.write(["Button Activated", this.name])
+            }
         }
 
         onActivate() {
@@ -138,6 +167,11 @@ let GazeControl = {};
             this.currentColor = this.defaultColor
             this.active = false
             this.dwellProgress = 0
+            this.onReset()
+        }
+
+        onReset() {
+            
         }
 
         disable() {
@@ -156,6 +190,10 @@ let GazeControl = {};
 
         unhide() {
             this.visible = true
+        }
+
+        toString() {
+            return this.name
         }
     }
 

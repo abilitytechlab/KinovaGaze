@@ -1,211 +1,234 @@
-// Create ROS object which connects to the locally running ROS
-var ros = new ROSLIB.Ros({
-    url: 'ws://kinovagaze.local:9090'
-});
+RosComm = class {
+    // Create ROS object which connects to the locally running ROS
+    constructor(url, onConnectionCallback = this.onConnection, onErrorCallback = this.onError, onCloseCallback = this.onClose) {
+        this.ros = new ROSLIB.Ros({
+            url: url 
+        });
 
-// Make and call a function to update the ROS status depending on the last update
-ros.on('connection', function () {
-    document.getElementById("status").innerHTML = "Connected";
-});
+         // Make and call a function to update the ROS status depending on the last update
+        this.ros.on('connection', onConnectionCallback);
 
-ros.on('error', function (error) {
-    document.getElementById("status").innerHTML = "Error";
-});
+        this.ros.on('error', onErrorCallback);
 
-ros.on('close', function () {
-    document.getElementById("status").innerHTML = "Closed";
-});
+        this.ros.on('close', onCloseCallback);
 
-// Create a listener for updates to the global /txt_msg parameter
-var txt_listener = new ROSLIB.Topic({
-    ros: ros,
-    name: '/txt_msg',
-    messageType: 'std_msgs/String'
-});
+        this.finger_position_set_publisher = new ROSLIB.Topic({
+            ros: this.ros,
+            name: "/kinovagaze/finger_position_set",
+            messageType: 'kinova_msgs/FingerPosition'
+        });
 
-// Subscribe to the txt_listener, update the msg field for every change
-txt_listener.subscribe(function (m) {
-    document.getElementById("msg").innerHTML = m.data;
-    msg_send("You sent " + m.data);
-});
-txt_listener.subscribe(function (m) {
-    document.getElementById("msg").innerHTML = m.data;
-    msg_send("You sent " + m.data);
-});
+        this.return_home_publisher = new ROSLIB.Topic({
+            ros: this.ros,
+            name: "/kinovagaze/return_home",
+            messageType: 'std_msgs/Empty'
+        });
 
-msg_send_listener = new ROSLIB.Topic({
-    ros: ros,
-    name: "kinovagaze/msg_send",
-    messageType: 'std_msgs/String'
-});
+        this.get_tool_pose_publisher = new ROSLIB.Topic({
+            ros: this.ros,
+            name: "/kinovagaze/get_tool_pose",
+            messageType: 'std_msgs/Empty'
+        });
 
-msg_send = function (text) {
-    var string = new ROSLIB.Message({
-        data: text
-    });
-    msg_send_listener.publish(string);
-}
+        this.stop_movement_publisher = new ROSLIB.Topic({
+            ros: this.ros,
+            name: "/kinovagaze/stop_movement",
+            messageType: 'std_msgs/Empty'
+        });
 
-finger_position_set_listener = new ROSLIB.Topic({
-    ros: ros,
-    name: "/kinovagaze/finger_position_set",
-    messageType: 'kinova_msgs/FingerPosition'
-});
+        this.tool_move_absolute_publisher = new ROSLIB.Topic({
+            ros: this.ros,
+            name: "/kinovagaze/tool_move_absolute",
+            messageType: "kinova_msgs/KinovaPose"
+        });
 
-finger_position_set = function (finger1, finger2, finger3) {
-    var finger_position = new ROSLIB.Message({
-        finger1: finger1,
-        finger2: finger2,
-        finger3: finger3
-    });
-    finger_position_set_listener.publish(finger_position);
-}
+        this.tool_move_relative_publisher = new ROSLIB.Topic({
+            ros: this.ros,
+            name: "/kinovagaze/tool_move_relative",
+            messageType: "kinova_msgs/KinovaPose"
+        });
 
-fingerPositionSet = function(fingers) {
-    finger_position_set(fingers[0], fingers[1], fingers[2])
-}
+        this.tool_move_continuous_publisher = new ROSLIB.Topic({
+            ros: this.ros,
+            name: "/kinovagaze/tool_move_continuous",
+            messageType: 'kinova_msgs/PoseVelocity'
+        });
 
-async function closeFingers() {
-    finger_position_set(100, 100, 100);
-}
+        this.timeout_publisher = new ROSLIB.Topic({
+            ros: this.ros,
+            name: "/kinovagaze/timeout",
+            messageType: 'std_msgs/Int32'
+        })
+    }
+    
+    onConnection() {
 
-async function openFingers() {
-    finger_position_set(0, 0, 0);
-}
+    }
 
-return_home_listener = new ROSLIB.Topic({
-    ros: ros,
-    name: "/kinovagaze/return_home",
-    messageType: 'std_msgs/Empty'
-});
+    onError() {
 
-return_home = function () {
-    return_home_listener.publish(new ROSLIB.Message());
-}
+    }
 
-async function returnHome() {
-    return_home();
-}
+    onClose() {
 
-get_tool_pose_listener = new ROSLIB.Topic({
-    ros: ros,
-    name: "/kinovagaze/get_tool_pose",
-    messageType: 'std_msgs/Empty'
-});
+    }
+   
 
-get_tool_pose = function () {
-    get_tool_pose_listener.publish(new ROSLIB.Message());
-}
+    // // Create a listener for updates to the global /txt_msg parameter
+    // let txt_listener = new ROSLIB.Topic({
+    //     ros: ros,
+    //     name: '/txt_msg',
+    //     messageType: 'std_msgs/String'
+    // });
 
-async function getToolPose() {
-    get_tool_pose();
-}
+    // // Subscribe to the txt_listener, update the msg field for every change
+    // txt_listener.subscribe(function (m) {
+    //     document.getElementById("msg").innerHTML = m.data;
+    //     msg_send("You sent " + m.data);
+    // });
+    // txt_listener.subscribe(function (m) {
+    //     document.getElementById("msg").innerHTML = m.data;
+    //     msg_send("You sent " + m.data);
+    // });
 
-stop_movement_listener = new ROSLIB.Topic({
-    ros: ros,
-    name: "/kinovagaze/stop_movement",
-    messageType: 'std_msgs/Empty'
-});
+    // msg_send_publisher = new ROSLIB.Topic({
+    //     ros: ros,
+    //     name: "kinovagaze/msg_send",
+    //     messageType: 'std_msgs/String'
+    // });
 
-stop_movement = function () {
-    stop_movement_listener.publish(new ROSLIB.Message());
-}
+    // msg_send = function (text) {
+    //     let string = new ROSLIB.Message({
+    //         data: text
+    //     });
+    //     msg_send_publisher.publish(string);
+    // }
 
-async function stopMovement() {
-    stop_movement();
-}
+    setTimeout = function (timeout) {
+        let timeoutMsg = new ROSLIB.Message({
+            data: timeout
+        })
+        this.timeout_publisher.publish(timeoutMsg)
+    }
 
-tool_move_position_listener = new ROSLIB.Topic({
-    ros: ros,
-    name: "/kinovagaze/tool_move_position",
-    messageType: "kinova_msgs/KinovaPose"
-});
+    fingerPositionSet = function (finger1, finger2, finger3) {
+        let finger_position = new ROSLIB.Message({
+            finger1: finger1,
+            finger2: finger2,
+            finger3: finger3
+        });
+        this.finger_position_set_publisher.publish(finger_position);
+    }
 
-tool_move_position = function (x = 0, y = 0, z = 0, yaw = 0, pitch = 0, roll = 0) {
-    console.log(x, y, z, yaw, pitch, roll);
-    var position_axis = new ROSLIB.Message({
-        X: x,
-        Y: y,
-        Z: z,
-        ThetaX: yaw,
-        ThetaY: pitch,
-        ThetaZ: roll
-    });
-    tool_move_position_listener.publish(position_axis);
-}
+    closeFingers() {
+        this.fingerPositionSet(100, 100, 100);
+    }
 
-positionForward = function () {
-    tool_move_position(0.2, -0.6, 0.3, 90, 0, 0);
-}
+    openFingers() {
+        this.fingerPositionSet(0, 0, 0);
+    }
 
-tool_move_continuous_listener = new ROSLIB.Topic({
-    ros: ros,
-    name: "/kinovagaze/tool_move_continuous",
-    messageType: 'kinova_msgs/PoseVelocity'
-});
+    returnHome = function () {
+        this.return_home_publisher.publish(new ROSLIB.Message());
+    }
 
-tool_move_continuous = function (x = 0, y = 0, z = 0, yaw = 0, pitch = 0, roll = 0) {
-    console.log(x, y, z, yaw, pitch, roll)
-    var move_axis = new ROSLIB.Message({
-        twist_linear_x: x,
-        twist_linear_y: y,
-        twist_linear_z: z,
-        twist_angular_x: yaw,
-        twist_angular_y: pitch,
-        twist_angular_z: roll
-    });
-    console.log(move_axis);
-    tool_move_continuous_listener.publish(move_axis);
-}
+    getToolPose = function () {
+        this.get_tool_pose_publisher.publish(new ROSLIB.Message());
+    }
 
-toolMoveContinuous = function(axis) {
-    tool_move_continuous(axis[0], axis[1], axis[2], axis[3], axis[4], axis[5])
-}
+    stopMovement = function () {
+        this.stop_movement_publisher.publish(new ROSLIB.Message());
+    }
 
-left = function () {
-    tool_move_continuous(1, 0, 0, 0, 0, 0);
-}
+    toolMoveAbsolute = function (x = 0, y = 0, z = 0, yaw = 0, pitch = 0, roll = 0) {
+        console.log(x, y, z, yaw, pitch, roll);
+        let position_axis = new ROSLIB.Message({
+            X: x,
+            Y: y,
+            Z: z,
+            ThetaX: yaw,
+            ThetaY: pitch,
+            ThetaZ: roll
+        });
+        this.tool_move_absolute_publisher.publish(position_axis);
+    }
 
-right = function () {
-    tool_move_continuous(-1, 0, 0, 0, 0, 0);
-}
+    toolMoveRelative = function (x = 0, y = 0, z = 0, yaw = 0, pitch = 0, roll = 0) {
+        console.log(x, y, z, yaw, pitch, roll);
+        let position_axis = new ROSLIB.Message({
+            X: x,
+            Y: y,
+            Z: z,
+            ThetaX: yaw,
+            ThetaY: pitch,
+            ThetaZ: roll
+        });
+        this.tool_move_relative_publisher.publish(position_axis);
+    }
 
-forward = function () {
-    tool_move_continuous(0, -1, 0, 0, 0, 0);
-}
+    toolMoveContinuous = function (x = 0, y = 0, z = 0, yaw = 0, pitch = 0, roll = 0) {
+        console.log(x, y, z, yaw, pitch, roll)
+        let move_axis = new ROSLIB.Message({
+            twist_linear_x: x,
+            twist_linear_y: y,
+            twist_linear_z: z,
+            twist_angular_x: yaw,
+            twist_angular_y: pitch,
+            twist_angular_z: roll
+        });
+        console.log(move_axis);
+        this.tool_move_continuous_publisher.publish(move_axis);
+    }
 
-back = function () {
-    tool_move_continuous(0, 1, 0, 0, 0, 0);
-}
+    positionForward = function () {
+        this.toolMoveAbsolute(0.2, -0.6, 0.3, 90, 0, 0);
+    }
 
-up = function () {
-    tool_move_continuous(0, 0, 1, 0, 0, 0);
-}
+    left = function () {
+        this.toolMoveContinuous(1, 0, 0, 0, 0, 0);
+    }
 
-down = function () {
-    tool_move_continuous(0, 0, -1, 0, 0, 0);
-}
+    right = function () {
+        this.toolMoveContinuous(-1, 0, 0, 0, 0, 0);
+    }
 
-pitchUp = function () {
-    tool_move_continuous(0, 0, 0, -1, 0, 0);
-}
+    forward = function () {
+        this.toolMoveContinuous(0, -1, 0, 0, 0, 0);
+    }
 
-pitchDown = function () {
-    tool_move_continuous(0, 0, 0, 1, 0, 0);
-}
+    back = function () {
+        this.toolMoveContinuous(0, 1, 0, 0, 0, 0);
+    }
 
-rollClockwise = function () {
-    tool_move_continuous(0, 0, 0, 0, 0, 1);
-}
+    up = function () {
+        this.toolMoveContinuous(0, 0, 1, 0, 0, 0);
+    }
 
-rollCounterClockwise = function () {
-    tool_move_continuous(0, 0, 0, 0, 0, -1);
-}
+    down = function () {
+        this.toolMoveContinuous(0, 0, -1, 0, 0, 0);
+    }
 
-yawLeft = function () {
-    tool_move_continuous(0, 0, 0, 0, 1, 0);
-}
+    pitchUp = function () {
+        this.toolMoveContinuous(0, 0, 0, -1, 0, 0);
+    }
 
-yawRight = function () {
-    tool_move_continuous(0, 0, 0, 0, -1, 0);
+    pitchDown = function () {
+        this.toolMoveContinuous(0, 0, 0, 1, 0, 0);
+    }
+
+    rollClockwise = function () {
+        this.toolMoveContinuous(0, 0, 0, 0, 0, 1);
+    }
+
+    rollCounterClockwise = function () {
+        this.toolMoveContinuous(0, 0, 0, 0, 0, -1);
+    }
+
+    yawLeft = function () {
+        this.toolMoveContinuous(0, 0, 0, 0, 1, 0);
+    }
+
+    yawRight = function () {
+        this.toolMoveContinuous(0, 0, 0, 0, -1, 0);
+    }
 }

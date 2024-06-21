@@ -1,91 +1,67 @@
-"use strict";
+let GUI = new p5((p) => {
+  const buttons = []
+  const buttonDimentions = {}
 
-const gui = ( p ) => {
-  let canvas
   const baseWidth = 640
   const baseHeight = 480
   const aspectRatio = baseWidth / baseHeight
   let scaleFactor = 1
   let defaultTextSize = 32
 
-  let rosComm
+  let streamLoaded = false
   let connectionState = "Loading"
+
   let moveAxis = [0, 0, 0, 0, 0, 0]
 
-  let stream
-  let streamLoaded = false
-
-  let dt
-  let lastTime
-
-  let cursorObject
-  let buttons = []
-  const oldButtonState = {}
-  const buttonDimentions = {}
-  const topBarButtons = []
-  const tabButtons = []
-  const lockButtons = []
-  const axisButtons = []
-  const strafeButtons = []
-  const forwardAndGrabButtons = []
-  let stopButton
-  let startButton
-  let lockButton
-  let unlockButton
-  let resetButton
-  let strafeTabButton
-  let forwardAndGrabTabButton
-
   p.setup = () => {
-    canvas = p.createCanvas(baseWidth, baseHeight)
+    this.canvas = p.createCanvas(baseWidth, baseHeight)
     updateCanvasDimensions()
 
-    rosComm = new RosComm('ws://kinovagaze.local:9090', onConnection, onError, onClose)
-    window.rosComm = rosComm // Allows sending ros commands via the browser console
+    roscomm = new RosComm('ws://kinovagaze.local:9090')
 
-    lastTime = Date.now()
+    this.lastTime = Date.now()
 
     createAxisButtons()
     createTopButtons()
     createBottomButtons()
-    cursorObject = new GazeControl.Cursor(p, buttons)
-    canvas.mouseOut(cursorObject.disable.bind(cursorObject))
-    canvas.mouseOver(cursorObject.enable.bind(cursorObject))
+    cursorObject = new GazeControl.Cursor()
+    this.canvas.mouseOut(cursorObject.disable)
+    this.canvas.mouseOver(cursorObject.enable)
 
-    stream = p.createImg("/video_feed", "webcam feed", undefined, streamLoadedHandler)
-    stream.hide()
+    this.stream = createImg("/video_feed", "webcam feed", undefined, streamLoadedHandler)
+    this.stream.hide()
 
     if (typeof recorder !== 'undefined') {
-      recorder.initialize(canvas)
+      recorder.initialize(this.canvas)
     }
   }
 
   p.draw = () => {
-    p.textSize(defaultTextSize)
-    dt = Date.now() - lastTime
-    lastTime = Date.now()
+    textSize(defaultTextSize)
+    this.dt = Date.now() - this.lastTime
+    this.lastTime = Date.now()
 
-    p.background(220);
+    background(220);
     if (streamLoaded) {
       try {
-        p.imageMode(p.CENTER)
-        p.image(stream, p.width / 2, p.height / 2, p.width, p.width * 0.5625)
+        imageMode(CENTER)
+        image(this.stream, width / 2, height / 2, width, width * 0.5625)
       } catch (error) {
-        p.textAlign(p.CENTER, p.CENTER)
-        p.fill(200, 0, 0)
-        p.text("Something went wrong with the camera feed,\nplease reload the page.", p.width / 2, p.height / 2)
+        textAlign(CENTER, CENTER)
+        fill(200, 0, 0)
+        text("Something went wrong with the camera feed,\nplease reload the page.", width / 2, height / 2)
       }
     } else {
-      p.textAlign(p.CENTER, p.CENTER)
-      p.fill(0)
-      p.text("Webcam stream loading, if this takes a while\nplease ensure camera is connected and refresh this page.", p.width / 2, p.height / 2)
+      textAlign(CENTER, CENTER)
+      fill(0)
+      text("Webcam stream loading, if this takes a while\nplease ensure camera is connected and refresh this page.", width / 2, height / 2)
     }
 
 
     if (connectionState == "Connected") {
       for (const button of buttons) {
-        button.update(dt)
-        button.display(p)
+        button.update()
+        button.display()
       }
     }
     else {
@@ -98,58 +74,66 @@ const gui = ( p ) => {
         case "Loading":
           stateText = "Connecting to the robot arm, please wait..."
       }
-      p.textAlign(p.CENTER, p.TOP)
-      p.text(stateText, p.width/2, 100)
     }
 
-    cursorObject.display(p)
+
+    this.cursorObject.display()
 
     if (typeof recorder !== 'undefined') {
-      p.textSize(defaultTextSize / 2)
-      recorder.display(p)
+      textSize(defaultTextSize / 2)
+      recorder.display()
+    }
+  }
+
+  class localRossComm extends RossComm {
+    constructor(url) {
+      super(url)
     }
 
-    this.rosComm.setTimeout(1000)
-  }
+    onConnection() {
+      connectionState = "Connected"
+    }
 
-  function onConnection() {
-    connectionState = "Connected"
-  }
+    onError() {
+      connectionState = "Error"
+    }
 
-  function onError() {
-    connectionState = "Error"
-  }
-
-  function onClose() {
-    connectionState = "Closed"
+    onClosed() {
+      connectionState = "Closed"
+    }
   }
 
   function createTopButtons() {
-    let grid = new GazeControl.Grid(0, 0, p.width, p.height * 1 / 7, 6, 1)
+    let grid = new GazeControl.Grid(0, 0, width, height * 1 / 7, 6, 1)
     grid.set(0, 0, grid.columns, grid.rows)
-    stopButton = new OneTimeButton(grid.x, grid.y, grid.w, grid.h, stopButtonHandler, hideStopButton, "Stop", "Stop", 250, p.color(200, 50, 0), p.color(200, 200, 50), p.color(0, 200, 50))
+    stopButton = new OneTimeButton(grid.x, grid.y, grid.w, grid.h, stopButtonHandler, hideStopButton, "Stop", "Stop", 250, color(200, 50, 0), color(200, 200, 50), color(0, 200, 50))
     stopButton.disable()
     stopButton.hide()
     addButton(stopButton)
 
+
+    topBarButtons = []
+
+    lockButtons = []
     grid.set(0, 0, 1, 1)
-    lockButton = new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, lockButtons, lockButtonHandler, "Lock", "Lock", 1000, p.color(0, 150, 50), p.color(200, 50, 0), p.color(200, 200, 50))
+    lockButton = new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, lockButtons, lockButtonHandler, "Lock", "Lock", 1000, color(0, 150, 50), color(200, 50, 0), color(200, 200, 50))
     topBarButtons.push(lockButton)
     lockButtons.push(lockButton)
-    unlockButton = new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, lockButtons, unLockButtonHandler, "Unlock", "Unlock", 2000, p.color(200, 50, 0), p.color(0, 150, 50), p.color(200, 200, 50))
+    unlockButton = new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, lockButtons, unLockButtonHandler, "Unlock", "Unlock", 2000, color(200, 50, 0), color(0, 150, 50), color(200, 200, 50))
     topBarButtons.push(unlockButton)
     lockButtons.push(unlockButton)
     unlockButton.hide()
     grid.set(grid.columns - 1, 0, 1, 1)
-    resetButton = new OneTimeButton(grid.x, grid.y, grid.w, grid.h, resetButtonHandler, undefined, "Reset", "Reset", 1000, p.color(0, 50, 200), p.color(20, 150, 200), p.color(20, 200, 200))
+    resetButton = new OneTimeButton(grid.x, grid.y, grid.w, grid.h, resetButtonHandler, undefined, "Reset", "Reset", 1000, color(0, 50, 200), color(20, 150, 200), color(20, 200, 200))
     topBarButtons.push(resetButton)
 
+    tabButtons = []
     grid.set(1, 0, 2, 1)
-    strafeTabButton = new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, tabButtons, strafeTabButtonHandler, "Strafe", "Strafe", 1000, p.color(150, 110, 10), p.color(222, 252, 55), p.color(0, 200, 50))
+    strafeTabButton = new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, tabButtons, strafeTabButtonHandler, "Strafe", "Strafe", 1000, color(150, 110, 10), color(222, 252, 55), color(0, 200, 50))
     tabButtons.push(strafeTabButton)
     topBarButtons.push(strafeTabButton)
     grid.set(3, 0, 2, 1)
-    forwardAndGrabTabButton = new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, tabButtons, forwardGrabTabButtonHandler, "ForwardAndGrab", "Forward & Grab", 1000, p.color(150, 110, 10), p.color(222, 252, 55), p.color(0, 200, 50))
+    forwardAndGrabTabButton = new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, tabButtons, forwardGrabTabButtonHandler, "ForwardAndGrab", "Forward & Grab", 1000, color(150, 110, 10), color(222, 252, 55), color(0, 200, 50))
     tabButtons.push(forwardAndGrabTabButton)
     topBarButtons.push(forwardAndGrabTabButton)
 
@@ -159,21 +143,25 @@ const gui = ( p ) => {
   }
 
   function createBottomButtons() {
-    let grid = new GazeControl.Grid(0, p.height * 6 / 7, p.width, p.height * 1 / 7, 6, 1)
+    let grid = new GazeControl.Grid(0, height * 6 / 7, width, height * 1 / 7, 6, 1)
     grid.set(0, 0, grid.columns, grid.rows)
-    startButton = new LatchingButton(grid.x, grid.y, grid.w, grid.h, startButtonHandler, "Start", "Start", 1000, p.color(0, 150, 50), p.color(20, 200, 200), p.color(20, 150, 200))
+    startButton = new LatchingButton(grid.x, grid.y, grid.w, grid.h, startButtonHandler, "Start", "Start", 1000, color(0, 150, 50), color(20, 200, 200), color(20, 150, 200))
     startButton.disable()
     addButton(startButton)
   }
 
   function createAxisButtons() {
-    let webcamWidth = p.width
-    let webcamHeight = p.height * (5 / 7)
+    this.direction = [0, 0, 0, 0, 0, 0]
+    let webcamWidth = width
+    let webcamHeight = height * (5 / 7)
     let webcamX = 0
-    let webcamY = (p.height - webcamHeight) / 2
+    let webcamY = (height - webcamHeight) / 2
     let grid = new GazeControl.Grid(webcamX, webcamY, webcamWidth, webcamHeight, 5, 5)
     let dwellDelay = 500
 
+    axisButtons = []
+
+    strafeButtons = []
     grid.set(0, 0)
     strafeButtons.push(new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, strafeButtons, axisButtonHandler, "Up Left", "Up Left", dwellDelay))
     grid.set((grid.columns - 1) / 2, 0)
@@ -194,6 +182,7 @@ const gui = ( p ) => {
       axisButtons.push(button)
     }
 
+    forwardAndGrabButtons = []
     grid.set(0, 0)
     forwardAndGrabButtons.push(new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, forwardAndGrabButtons, axisButtonHandler, "Forward", "Forward", dwellDelay))
     grid.set(grid.columns - 1, 0)
@@ -213,9 +202,9 @@ const gui = ( p ) => {
   }
 
   class LatchingSetButton extends GazeControl.Button {
-    constructor(x, y, w, h, buttonSet, callback, name = undefined, label = undefined, dwellDelay = 1000, defaultColor = p.color(150, 110, 10), hoverColor = p.color(255, 230, 0), activatedColor = p.color(222, 252, 55)) {
-      console.log(label)
-      super(p, x, y, w, h, name, label, dwellDelay, defaultColor, hoverColor, activatedColor)
+    constructor(x, y, w, h, buttonSet, callback, name = undefined, label = undefined, dwellDelay = 1000, defaultColor = color(150, 110, 10), hoverColor = color(255, 230, 0), activatedColor = color(222, 252, 55)) {
+      print(label)
+      super(x = x, y = y, w = w, h = h, name = name, label = label, dwellDelay = dwellDelay, defaultColor = defaultColor, hoverColor = hoverColor, activatedColor = activatedColor)
       this.buttonSet = buttonSet
       this.callback = callback
     }
@@ -226,30 +215,26 @@ const gui = ( p ) => {
           button.reset()
         }
       }
-      if(typeof(this.callback !== 'undefined')) {
-        this.callback(this)
-      }
+      this.callback(this)
     }
   }
 
   class LatchingButton extends GazeControl.Button {
-    constructor(x, y, w, h, callback, name = undefined, label = undefined, dwellDelay = 1000, defaultColor = p.color(200, 50, 0), hoverColor = p.color(200, 200, 50), activatedColor = p.color(0, 200, 50)) {
-      console.log(label)
-      super(p, x, y, w, h, name, label, dwellDelay, defaultColor, hoverColor, activatedColor)
+    constructor(x, y, w, h, callback, name = undefined, label = undefined, dwellDelay = 1000, defaultColor = color(200, 50, 0), hoverColor = color(200, 200, 50), activatedColor = color(0, 200, 50)) {
+      print(label)
+      super(x = x, y = y, w = w, h = h, name = name, label = label, dwellDelay = dwellDelay, defaultColor = defaultColor, hoverColor = hoverColor, activatedColor = activatedColor)
       this.callback = callback
     }
-    
+
     onActivate() {
-      if(typeof(this.callback !== 'undefined')) {
-        this.callback(this)
-      }
+      this.callback(this)
     }
   }
 
   class OneTimeButton extends GazeControl.Button {
-    constructor(x, y, w, h, activateCallback, unhoverCallback, name = undefined, label = undefined, dwellDelay = 1000, defaultColor = p.color(200, 50, 0), hoverColor = p.color(200, 200, 50), activatedColor = p.color(0, 200, 50)) {
-      console.log(label)
-      super(p, x, y, w, h, name, label, dwellDelay, defaultColor, hoverColor, activatedColor)
+    constructor(x, y, w, h, activateCallback, unhoverCallback, name = undefined, label = undefined, dwellDelay = 1000, defaultColor = color(200, 50, 0), hoverColor = color(200, 200, 50), activatedColor = color(0, 200, 50)) {
+      print(label)
+      super(x = x, y = y, w = w, h = h, name = name, label = label, dwellDelay = dwellDelay, defaultColor = defaultColor, hoverColor = hoverColor, activatedColor = activatedColor)
       this.activateCallback = activateCallback
       this.unhoverCallback = unhoverCallback
     }
@@ -257,14 +242,14 @@ const gui = ( p ) => {
     onUnhover() {
       if (this.active) {
         this.reset()
-        if (typeof this.unhoverCallback !== 'undefined') {
+        if (this.unhoverCallback !== undefined) {
           this.unhoverCallback(this)
         }
       }
     }
 
     onActivate() {
-      if (typeof this.activateCallback !== 'undefined') {
+      if (this.activateCallback !== undefined) {
         this.activateCallback(this)
       }
     }
@@ -316,15 +301,15 @@ const gui = ( p ) => {
       default:
         moveAxis = [0, 0, 0, 0, 0, 0]
     }
-    console.log(button.name, moveAxis)
+    print(button.name, moveAxis)
     if (typeof recorder !== 'undefined') {
       recorder.write(["Move Axis Set", moveAxis])
     }
   }
 
   function stopButtonHandler(button) {
-    console.log("Stop!")
-    rosComm.stopMovement()
+    print("Stop!")
+    stopMovement()
 
     // button.disable()
     startButton.reset()
@@ -337,24 +322,25 @@ const gui = ( p ) => {
   }
 
   function startButtonHandler(button) {
-    console.log("Start!")
+    print("Start!")
     stopButton.enable()
 
     for (const button of axisButtons) {
       button.disable()
     }
 
-    console.log(moveAxis)
+    print(moveAxis)
     if (moveAxis.length == 3) {
-      rosComm.fingerPositionSet(moveAxis[0], moveAxis[1], moveAxis[2])
+      fingerPositionSet(moveAxis)
     } else {
-      rosComm.toolMoveContinuous(moveAxis[0], moveAxis[1], moveAxis[2], moveAxis[3], moveAxis[4], moveAxis[5])
+      toolMoveContinuous(moveAxis)
     }
 
   }
 
   function lockButtonHandler(button) {
     clearSelections()
+    oldButtonState = {}
     for (const button of buttons) {
       if (button !== lockButton && button !== unlockButton) {
         oldButtonState[button.name] = button.enabled
@@ -379,16 +365,11 @@ const gui = ( p ) => {
 
   function resetButtonHandler(button) {
     clearSelections()
-    rosComm.returnHome()
-    setTimeout(setForwardPosition, 3000)
+    returnHome()
+    setTimeout(positionForward, 3000)
     if (typeof recorder !== 'undefined') {
       recorder.stop()
     }
-  }
-
-  function setForwardPosition() {
-    rosComm.positionForward()
-    rosComm.setTimeout(15000)
   }
 
   function strafeTabButtonHandler(button) {
@@ -399,7 +380,7 @@ const gui = ( p ) => {
       button.unhide()
     }
     if (typeof recorder !== 'undefined') {
-      recorder.start(p)
+      recorder.start()
     }
   }
 
@@ -411,7 +392,7 @@ const gui = ( p ) => {
       button.unhide()
     }
     if (typeof recorder !== 'undefined') {
-      recorder.start(p)
+      recorder.start()
     }
   }
 
@@ -436,12 +417,16 @@ const gui = ( p ) => {
     startButton.reset()
     startButton.disable()
 
+    for (const button of axisButtons) {
+      button.reset()
+      button.enable()
+    }
+
     for (const button of tabButtons) {
       button.reset()
     }
     for (const button of axisButtons) {
       button.reset()
-      button.enable()
       button.hide()
     }
   }
@@ -449,10 +434,10 @@ const gui = ( p ) => {
   function addButton(button) {
     buttons.push(button)
     buttonDimentions[button.name] = {
-      x: button.x / p.width,
-      y: button.y / p.height,
-      w: button.w / p.width,
-      h: button.h / p.height
+      x: button.x / width,
+      y: button.y / height,
+      w: button.w / width,
+      h: button.h / height
     }
   }
 
@@ -462,21 +447,21 @@ const gui = ( p ) => {
 
   function updateButtonDimensions() {
     for (const button of buttons) {
-      let dimentions = buttonDimentions[button.name]
-      button.x = dimentions.x * p.width
-      button.y = dimentions.y * p.height
-      button.w = dimentions.w * p.width
-      button.h = dimentions.h * p.height
+      dimentions = buttonDimentions[button.name]
+      button.x = dimentions.x * width
+      button.y = dimentions.y * height
+      button.w = dimentions.w * width
+      button.h = dimentions.h * height
     }
   }
 
-  p.mouseMoved = () => {
+  function mouseMoved() {
     if (typeof cursorObject !== 'undefined') {
-      cursorObject.cursorMoved(p.mouseX, p.mouseY)
+      this.cursorObject.cursorMoved(mouseX, mouseY)
     }
   }
 
-  p.windowResized = () => {
+  function windowResized() {
     updateCanvasDimensions()
     updateButtonDimensions()
   }
@@ -494,22 +479,20 @@ const gui = ( p ) => {
     //   canvasHeight = windowWidth / aspectRatio
     // }
 
-    canvasWidth = p.windowWidth
-    canvasHeight = p.windowHeight
-    // console.log(windowWidth, windowHeight, aspectRatio, canvasWidth, canvasHeight)
+    canvasWidth = windowWidth
+    canvasHeight = windowHeight
+    // print(windowWidth, windowHeight, aspectRatio, canvasWidth, canvasHeight)
 
-    p.resizeCanvas(canvasWidth, canvasHeight)
+    resizeCanvas(canvasWidth, canvasHeight)
 
     scaleFactor = baseWidth / canvasWidth
 
-    const x = (p.windowWidth - canvasWidth) / 2
-    const y = (p.windowHeight - canvasHeight) / 2
+    const x = (windowWidth - canvasWidth) / 2
+    const y = (windowHeight - canvasHeight) / 2
     canvas.position(x, y)
 
-    p.pixelDensity(window.devicePixelRatio)
-    p.strokeWeight(2 * scaleFactor)
+    pixelDensity(window.devicePixelRatio)
+    strokeWeight(2 * scaleFactor)
     defaultTextSize = 32
   }
-};
-
-let myp5 = new p5(gui)
+});

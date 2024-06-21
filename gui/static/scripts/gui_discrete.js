@@ -91,15 +91,23 @@ const gui = ( p ) => {
     else {
       let stateText = ""
       switch (connectionState) {
-        case "Disconnected":
+        case "Closed":
           stateText = "Connection to robot arm lost,\ncheck if arm is on and connected,\nthen try refreshing the page."
+          break
         case "Error":
           stateText = "Error connecting to the robot arm,\ncheck if arm is on and connected,\nthen try refreshing the page."
+          break
         case "Loading":
           stateText = "Connecting to the robot arm, please wait..."
+          break
+        default:
+          stateText = "Something went wrong,\nplease reload the page."
       }
       p.textAlign(p.CENTER, p.TOP)
       p.text(stateText, p.width/2, 100)
+      p.fill(128, 0, 0, 192)
+      p.rectMode(CORNER)
+      p.rect(0, 0, p.width, p.height)
     }
 
     cursorObject.display(p)
@@ -108,8 +116,6 @@ const gui = ( p ) => {
       p.textSize(defaultTextSize / 2)
       recorder.display(p)
     }
-
-    this.rosComm.setTimeout(1000)
   }
 
   function onConnection() {
@@ -126,11 +132,6 @@ const gui = ( p ) => {
 
   function createTopButtons() {
     let grid = new GazeControl.Grid(0, 0, p.width, p.height * 1 / 7, 6, 1)
-    grid.set(0, 0, grid.columns, grid.rows)
-    stopButton = new OneTimeButton(grid.x, grid.y, grid.w, grid.h, stopButtonHandler, hideStopButton, "Stop", "Stop", 250, p.color(200, 50, 0), p.color(200, 200, 50), p.color(0, 200, 50))
-    stopButton.disable()
-    stopButton.hide()
-    addButton(stopButton)
 
     grid.set(0, 0, 1, 1)
     lockButton = new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, lockButtons, lockButtonHandler, "Lock", "Lock", 1000, p.color(0, 150, 50), p.color(200, 50, 0), p.color(200, 200, 50))
@@ -161,9 +162,8 @@ const gui = ( p ) => {
   function createBottomButtons() {
     let grid = new GazeControl.Grid(0, p.height * 6 / 7, p.width, p.height * 1 / 7, 6, 1)
     grid.set(0, 0, grid.columns, grid.rows)
-    startButton = new LatchingButton(grid.x, grid.y, grid.w, grid.h, startButtonHandler, "Start", "Start", 1000, p.color(0, 150, 50), p.color(20, 200, 200), p.color(20, 150, 200))
-    startButton.disable()
-    addButton(startButton)
+    stopButton = new OneTimeButton(grid.x, grid.y, grid.w, grid.h, stopButtonHandler, undefined, "Stop", "Stop", 250, p.color(200, 50, 0), p.color(200, 200, 50), p.color(0, 200, 50))
+    addButton(stopButton)
   }
 
   function createAxisButtons() {
@@ -175,33 +175,33 @@ const gui = ( p ) => {
     let dwellDelay = 500
 
     grid.set(0, 0)
-    strafeButtons.push(new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, strafeButtons, axisButtonHandler, "Up Left", "Up Left", dwellDelay))
+    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Up Left", "Up Left", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     grid.set((grid.columns - 1) / 2, 0)
-    strafeButtons.push(new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, strafeButtons, axisButtonHandler, "Up", "Up", dwellDelay))
+    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Up", "Up", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     grid.set(grid.columns - 1, 0)
-    strafeButtons.push(new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, strafeButtons, axisButtonHandler, "Up Right", "Up Right", dwellDelay))
+    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Up Right", "Up Right", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     grid.set(0, (grid.rows - 1) / 2)
-    strafeButtons.push(new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, strafeButtons, axisButtonHandler, "Left", "Left", dwellDelay))
+    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Left", "Left", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     grid.set(grid.columns - 1, (grid.rows - 1) / 2)
-    strafeButtons.push(new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, strafeButtons, axisButtonHandler, "Right", "Right", dwellDelay))
+    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Right", "Right", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     grid.set(0, grid.rows - 1)
-    strafeButtons.push(new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, strafeButtons, axisButtonHandler, "Down Left", "Down Left", dwellDelay))
+    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Down Left", "Down Left", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     grid.set((grid.columns - 1) / 2, grid.rows - 1)
-    strafeButtons.push(new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, strafeButtons, axisButtonHandler, "Down", "Down", dwellDelay))
+    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Down", "Down", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     grid.set(grid.columns - 1, grid.rows - 1)
-    strafeButtons.push(new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, strafeButtons, axisButtonHandler, "Down Right", "Down Right", dwellDelay))
+    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Down Right", "Down Right", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     for (const button of strafeButtons) {
       axisButtons.push(button)
     }
 
     grid.set(0, 0)
-    forwardAndGrabButtons.push(new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, forwardAndGrabButtons, axisButtonHandler, "Forward", "Forward", dwellDelay))
+    forwardAndGrabButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Forward", "Forward", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     grid.set(grid.columns - 1, 0)
-    forwardAndGrabButtons.push(new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, forwardAndGrabButtons, axisButtonHandler, "Backward", "Backward", dwellDelay))
+    forwardAndGrabButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Backward", "Backward", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     grid.set(0, grid.rows - 1)
-    forwardAndGrabButtons.push(new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, forwardAndGrabButtons, axisButtonHandler, "Open", "Open", dwellDelay))
+    forwardAndGrabButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Open", "Open", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     grid.set(grid.columns - 1, grid.rows - 1)
-    forwardAndGrabButtons.push(new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, forwardAndGrabButtons, axisButtonHandler, "Close", "Close", dwellDelay))
+    forwardAndGrabButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Close", "Close", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     for (const button of forwardAndGrabButtons) {
       axisButtons.push(button)
     }
@@ -270,12 +270,51 @@ const gui = ( p ) => {
     }
   }
 
+  class HoldButton extends GazeControl.Button {
+    constructor(x, y, w, h, activateCallback, unhoverCallback, updateCallback, timeout, name = undefined, label = undefined, dwellDelay = 1000, defaultColor = p.color(200, 50, 0), hoverColor = p.color(200, 200, 50), activatedColor = p.color(0, 200, 50)) {
+      console.log(label)
+      super(p, x, y, w, h, name, label, dwellDelay, defaultColor, hoverColor, activatedColor)
+      this.activateCallback = activateCallback
+      this.unhoverCallback = unhoverCallback
+      this.updateCallback = updateCallback
+      this.timeout = timeout
+    }
+
+    onUpdate() {
+      if (this.active) {
+        if(this.dwelled == true) {
+          this.dwellProgress = this.dwellDelay
+        } else {
+          this.dwellProgress -= (this.dwellDelay/this.timeout)*dt
+          if(this.dwellProgress <= 0) {
+            this.dwellProgress = 0
+            this.reset()
+            return
+          }
+        }
+        if(typeof this.updateCallback !== 'undefined') {
+          this.updateCallback(this)
+        }
+      }
+    }
+    
+
+    onUnhover() {
+      if (this.active && typeof this.unhoverCallback !== 'undefined') {
+        this.unhoverCallback(this)
+      }
+    }
+
+    onActivate() {
+      if (typeof this.activateCallback !== 'undefined') {
+        this.activateCallback(this)
+      }
+    }
+  }
+
   function axisButtonHandler(button) {
-    unhideStopButton()
-    stopButton.reset()
     stopButton.enable()
 
-    startButton.enable()
     switch (button.name) {
       case "Up Left":
         moveAxis = [1, 0, 1, 0, 0, 0]
@@ -318,7 +357,21 @@ const gui = ( p ) => {
     }
     console.log(button.name, moveAxis)
     if (typeof recorder !== 'undefined') {
-      recorder.write(["Move Axis Set", moveAxis])
+      recorder.write(["Move Axis Set and Applied", moveAxis])
+    }
+
+    rosComm.setTimeout(1000)
+    if (moveAxis.length == 3) {
+      rosComm.fingerPositionSet(moveAxis[0], moveAxis[1], moveAxis[2])
+    } else {
+      rosComm.toolMoveRelative(moveAxis[0], moveAxis[1], moveAxis[2], moveAxis[3], moveAxis[4], moveAxis[5])
+    }
+  }
+
+  function axisButtonHeldUpdate(button) {
+    console.log(button.dwelled)
+    if(button.dwelled) {
+      rosComm.setTimeout(1000)
     }
   }
 
@@ -326,31 +379,10 @@ const gui = ( p ) => {
     console.log("Stop!")
     rosComm.stopMovement()
 
-    // button.disable()
-    startButton.reset()
-    startButton.disable()
-
     for (const button of axisButtons) {
       button.reset()
       button.enable()
     }
-  }
-
-  function startButtonHandler(button) {
-    console.log("Start!")
-    stopButton.enable()
-
-    for (const button of axisButtons) {
-      button.disable()
-    }
-
-    console.log(moveAxis)
-    if (moveAxis.length == 3) {
-      rosComm.fingerPositionSet(moveAxis[0], moveAxis[1], moveAxis[2])
-    } else {
-      rosComm.toolMoveContinuous(moveAxis[0], moveAxis[1], moveAxis[2], moveAxis[3], moveAxis[4], moveAxis[5])
-    }
-
   }
 
   function lockButtonHandler(button) {
@@ -415,27 +447,7 @@ const gui = ( p ) => {
     }
   }
 
-  function hideStopButton() {
-    for (const button of topBarButtons) {
-      if (button.name != unlockButton) {
-        button.unhide()
-      }
-    }
-
-    stopButton.hide()
-  }
-
-  function unhideStopButton() {
-    stopButton.unhide()
-    for (const button of topBarButtons) {
-      button.hide()
-    }
-  }
-
   function clearSelections() {
-    startButton.reset()
-    startButton.disable()
-
     for (const button of tabButtons) {
       button.reset()
     }
