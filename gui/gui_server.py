@@ -44,14 +44,19 @@ class GUIServer():
         print("Hello World!")
         self.app = Flask(__name__)
         # self.jsglue = JSGlue(self.app)
-        self.app.route('/')(lambda: render_template('gui.html'))
+        self.app.route('/')(self.show_gui)
         self.app.route('/old')(self.show_gui_old)
         self.app.route('/research')(self.show_gui_research)
         self.app.route('/discrete')(self.show_gui_discrete)
         self.app.route('/discrete/research')(self.show_gui_research_discrete)
+        self.app.route('/whack-a-button')(self.show_whack_a_button)
+        self.app.route('/whack-a-button/research')(self.show_whack_a_button_research)
         
         self.app.route
         self.app.route('/video_feed')(self.video_feed)
+
+    def show_gui(self):
+        return render_template('gui.html')
 
     def show_gui_old(self):
         return render_template('gui_old.html')
@@ -64,6 +69,12 @@ class GUIServer():
     
     def show_gui_research_discrete(self):
         return render_template('gui_research_discrete.html')
+
+    def show_whack_a_button(self):
+        return render_template('whack-a-button.html')
+    
+    def show_whack_a_button_research(self):
+        return render_template('whack-a-button_research.html')
 
     def video_feed(self):
         if not (os.environ.get('WERKZEUG_RUN_MAIN') or not os.environ.get("FLASK_ENV") == "development" or Flask.debug is False):

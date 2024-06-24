@@ -110,10 +110,26 @@ GazeControl = {};
                     fillColor = this.p.lerpColor(fillColor, this.p.color(64, 64, 64, 64), 0.5)
                 }
                 this.p.fill(fillColor)
+                this.p.rectMode(this.p.CORNER)
                 this.p.rect(this.x, this.y, this.w, this.h)
-                this.p.textAlign(this.p.CENTER, this.p.CENTER)
                 this.p.fill(0)
-                this.p.text(this.label, this.x, this.y, this.w, this.h)
+
+                if(typeof this.label == "string") {
+                    this.p.textAlign(this.p.CENTER, this.p.CENTER)
+                    this.p.text(this.label, this.x, this.y, this.w, this.h)
+                } 
+                else if(this.label instanceof p5.Image) {
+                    this.p.rectMode(this.p.CENTER);
+                    let scale
+                    if(this.label.width/this.label.height > this.w/this.h) {
+                        scale = this.w/this.label.width
+                    } else {
+                        scale = this.h/this.label.height
+                    }
+                    let labelWidth = this.label.width*scale
+                    let labelHeight = this.label.height*scale
+                    this.p.image(this.label, this.x+this.w/2, this.y+this.h/2, labelWidth/2, labelHeight/2)
+                }
             }
         }
 

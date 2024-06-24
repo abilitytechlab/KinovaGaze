@@ -72,7 +72,7 @@ const gui = ( p ) => {
         p.image(stream, p.width / 2, p.height / 2, p.width, p.width * 0.5625)
       } catch (error) {
         p.textAlign(p.CENTER, p.CENTER)
-        p.fill(200, 0, 0)
+        p.fill(192)
         p.text("Something went wrong with the camera feed,\nplease reload the page.", p.width / 2, p.height / 2)
       }
     } else {
@@ -103,11 +103,12 @@ const gui = ( p ) => {
         default:
           stateText = "Something went wrong,\nplease reload the page."
       }
+      p.fill(128, 128, 128, 192)
+      p.rectMode(p.CORNER)
+      p.rect(0, 0, p.width, p.height)
+      p.fill(0)
       p.textAlign(p.CENTER, p.TOP)
       p.text(stateText, p.width/2, 100)
-      p.fill(128, 0, 0, 192)
-      p.rectMode(CORNER)
-      p.rect(0, 0, p.width, p.height)
     }
 
     cursorObject.display(p)
@@ -134,23 +135,23 @@ const gui = ( p ) => {
     let grid = new GazeControl.Grid(0, 0, p.width, p.height * 1 / 7, 6, 1)
 
     grid.set(0, 0, 1, 1)
-    lockButton = new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, lockButtons, lockButtonHandler, "Lock", "Lock", 1000, p.color(0, 150, 50), p.color(200, 50, 0), p.color(200, 200, 50))
+    lockButton = new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, lockButtons, lockButtonHandler, "Lock", p.loadImage("static/icons/icons_lock.svg"), 1000, p.color(0, 150, 50), p.color(200, 50, 0), p.color(200, 200, 50))
     topBarButtons.push(lockButton)
     lockButtons.push(lockButton)
-    unlockButton = new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, lockButtons, unLockButtonHandler, "Unlock", "Unlock", 2000, p.color(200, 50, 0), p.color(0, 150, 50), p.color(200, 200, 50))
+    unlockButton = new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, lockButtons, unLockButtonHandler, "Unlock", p.loadImage("static/icons/icons_unlock.svg"), 2000, p.color(200, 50, 0), p.color(0, 150, 50), p.color(200, 200, 50))
     topBarButtons.push(unlockButton)
     lockButtons.push(unlockButton)
     unlockButton.hide()
     grid.set(grid.columns - 1, 0, 1, 1)
-    resetButton = new OneTimeButton(grid.x, grid.y, grid.w, grid.h, resetButtonHandler, undefined, "Reset", "Reset", 1000, p.color(0, 50, 200), p.color(20, 150, 200), p.color(20, 200, 200))
+    resetButton = new OneTimeButton(grid.x, grid.y, grid.w, grid.h, resetButtonHandler, undefined, "Reset", p.loadImage("static/icons/icons_reset.svg"), 1000, p.color(0, 50, 200), p.color(20, 150, 200), p.color(20, 200, 200))
     topBarButtons.push(resetButton)
 
     grid.set(1, 0, 2, 1)
-    strafeTabButton = new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, tabButtons, strafeTabButtonHandler, "Strafe", "Strafe", 1000, p.color(150, 110, 10), p.color(222, 252, 55), p.color(0, 200, 50))
+    strafeTabButton = new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, tabButtons, strafeTabButtonHandler, "Strafe", p.loadImage("static/icons/icons_strafe.svg"), 1000, p.color(150, 110, 10), p.color(222, 252, 55), p.color(0, 200, 50))
     tabButtons.push(strafeTabButton)
     topBarButtons.push(strafeTabButton)
     grid.set(3, 0, 2, 1)
-    forwardAndGrabTabButton = new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, tabButtons, forwardGrabTabButtonHandler, "ForwardAndGrab", "Forward & Grab", 1000, p.color(150, 110, 10), p.color(222, 252, 55), p.color(0, 200, 50))
+    forwardAndGrabTabButton = new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, tabButtons, forwardGrabTabButtonHandler, "ForwardAndGrab", p.loadImage("static/icons/icons_forward-backward.svg"), 1000, p.color(150, 110, 10), p.color(222, 252, 55), p.color(0, 200, 50))
     tabButtons.push(forwardAndGrabTabButton)
     topBarButtons.push(forwardAndGrabTabButton)
 
@@ -162,7 +163,7 @@ const gui = ( p ) => {
   function createBottomButtons() {
     let grid = new GazeControl.Grid(0, p.height * 6 / 7, p.width, p.height * 1 / 7, 6, 1)
     grid.set(0, 0, grid.columns, grid.rows)
-    stopButton = new OneTimeButton(grid.x, grid.y, grid.w, grid.h, stopButtonHandler, undefined, "Stop", "Stop", 250, p.color(200, 50, 0), p.color(200, 200, 50), p.color(0, 200, 50))
+    stopButton = new OneTimeButton(grid.x, grid.y, grid.w, grid.h, stopButtonHandler, undefined, "Stop", p.loadImage("static/icons/icons_stop.svg"), 250, p.color(200, 50, 0), p.color(200, 200, 50), p.color(0, 200, 50))
     addButton(stopButton)
   }
 
@@ -175,33 +176,33 @@ const gui = ( p ) => {
     let dwellDelay = 500
 
     grid.set(0, 0)
-    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Up Left", "Up Left", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
+    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Up Left", p.loadImage("static/icons/icons_up-left.svg"), dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     grid.set((grid.columns - 1) / 2, 0)
-    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Up", "Up", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
+    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Up", p.loadImage("static/icons/icons_up.svg"), dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     grid.set(grid.columns - 1, 0)
-    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Up Right", "Up Right", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
+    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Up Right", p.loadImage("static/icons/icons_up-right.svg"), dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     grid.set(0, (grid.rows - 1) / 2)
-    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Left", "Left", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
+    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Left", p.loadImage("static/icons/icons_left.svg"), dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     grid.set(grid.columns - 1, (grid.rows - 1) / 2)
-    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Right", "Right", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
+    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Right", p.loadImage("static/icons/icons_right.svg"), dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     grid.set(0, grid.rows - 1)
-    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Down Left", "Down Left", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
+    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Down Left", p.loadImage("static/icons/icons_down-left.svg"), dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     grid.set((grid.columns - 1) / 2, grid.rows - 1)
-    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Down", "Down", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
+    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Down", p.loadImage("static/icons/icons_down.svg"), dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     grid.set(grid.columns - 1, grid.rows - 1)
-    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Down Right", "Down Right", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
+    strafeButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Down Right", p.loadImage("static/icons/icons_down-right.svg"), dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     for (const button of strafeButtons) {
       axisButtons.push(button)
     }
 
     grid.set(0, 0)
-    forwardAndGrabButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Forward", "Forward", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
+    forwardAndGrabButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Forward", p.loadImage("static/icons/icons_forward.svg"), dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     grid.set(grid.columns - 1, 0)
-    forwardAndGrabButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Backward", "Backward", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
+    forwardAndGrabButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Backward", p.loadImage("static/icons/icons_backward.svg"), dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     grid.set(0, grid.rows - 1)
-    forwardAndGrabButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Open", "Open", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
+    forwardAndGrabButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Open", p.loadImage("static/icons/icons_open.svg"), dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     grid.set(grid.columns - 1, grid.rows - 1)
-    forwardAndGrabButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Close", "Close", dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
+    forwardAndGrabButtons.push(new HoldButton(grid.x, grid.y, grid.w, grid.h, axisButtonHandler, undefined, axisButtonHeldUpdate, 1000, "Close", p.loadImage("static/icons/icons_close.svg"), dwellDelay, p.color(150, 110, 10), p.color(255, 230, 0), p.color(222, 252, 55)))
     for (const button of forwardAndGrabButtons) {
       axisButtons.push(button)
     }
@@ -369,7 +370,7 @@ const gui = ( p ) => {
   }
 
   function axisButtonHeldUpdate(button) {
-    console.log(button.dwelled)
+    // console.log(button.dwelled)
     if(button.dwelled) {
       rosComm.setTimeout(1000)
     }

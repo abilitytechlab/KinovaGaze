@@ -1,0 +1,12 @@
+Start icon by Dazzle UI from SVGRepo under CC Attribution License: https://www.svgrepo.com/svg/532511/play
+Stop icon by Vlad Cristea from SVGRepo under CC Attribution License: https://www.svgrepo.com/svg/522674/stop (Modified: increased line width)
+Unlock icon by Dazzle UI from SVGRepo under CC Attribution License: https://www.svgrepo.com/svg/532340/unlock
+Lock icon by Dazzle UI from SVGRepo under CC Attribution License: https://www.svgrepo.com/svg/532320/lock
+Reset icon by CoreyGinnivan from SVGRepo in the Public Domain: https://www.svgrepo.com/svg/343263/reset (Modified: increased line width)
+Long arrows by bypeople from SVGRepo in the Public Domain: https://www.svgrepo.com/svg/511428/arrow-right-365
+Two-sided arrow by bypeople from SVGRepo in the Public Domain: https://www.svgrepo.com/svg/511395/arrow-left-down-right-up-379
+Stemless arrows by bypeople from SVGRepo in the Public Domain: https://www.svgrepo.com/svg/511472/arrow-up-337
+Four-sided arrow by bypeople from SVGRepo in the Public Domain: https://www.svgrepo.com/svg/511334/arrow-all-331
+Hand icon by Gabriele Malaspina from SVGRepo in the Public Domain: https://www.svgrepo.com/svg/488985/hand
+
+CC Attribution License: https://creativecommons.org/licenses/by/4.0/

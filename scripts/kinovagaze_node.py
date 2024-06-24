@@ -136,6 +136,7 @@ class Kinova_Actions:
     
     def set_finger_position(self, finger_positions):
         rospy.loginfo(f"Setting finger positions to: {finger_positions}")
+        self.unlock_movement()
         
         goal = kinova_msgs.msg.SetFingersPositionGoal()
         goal.fingers.finger1 = float(finger_positions.finger1)/100*self.max_finger_value
@@ -315,9 +316,9 @@ class Kinova_Actions:
             loops = 1
 
         for i in range(loops):
-            self.movement_publisher.publish(kinova_msgs.msg.PoseVelocity())
-            self.tool_pose_client.cancel_all_goals()
-            self.finger_position_client.cancel_all_goals()
+            # self.movement_publisher.publish(kinova_msgs.msg.PoseVelocity())
+            # self.tool_pose_client.cancel_all_goals()
+            # self.finger_position_client.cancel_all_goals()
             try:
                 response_stop = self.stop_service()
                 response_clear_trajectories = self.tool_clear_trajectories()
