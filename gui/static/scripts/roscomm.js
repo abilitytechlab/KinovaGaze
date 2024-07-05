@@ -181,7 +181,7 @@ RosComm = class {
     }
 
     positionForward = function () {
-        this.toolMoveAbsolute(0.2, -0.6, 0.3, 90, 0, 0);
+        this.toolMoveAbsolute(0.3, -0.3, 0.2, 90, 0, 0);
     }
 
     left = function () {

@@ -8,13 +8,15 @@
 
   <script type="text/javascript" src="/static/roslibjs/roslib.min.js"></script>
   <script type="text/javascript" src="/static/p5js/p5.js"></script>
+  <script type="text/javascript" src="/static/p5_videorecorder/p5.videorecorder.js"></script>
 </head>
 
 <body>
-  <script type="text/javascript" src="/static/scripts/roscomm.js"></script>
-
+  <script src="/static/scripts/roscomm.js"></script>
   <script src="/static/scripts/gazecontrol.js"></script>
-  <script src="/static/scripts/gui_discrete.js"></script>
+  <script src="/static/scripts/datarecorder.js"></script>
+  <script>recorder = new GazeControl.Recorder("ID" + prompt("Please enter your given identifier number"))</script>
+  <script src="/static/scripts/gui_hold.js"></script>
   
   <main>
   </main>

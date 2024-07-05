@@ -293,7 +293,7 @@ const gui = ( p ) => {
         moveAxis = [0, 0, 1, 0, 0, 0]
         break
       case "Up Right":
-        moveAxis = [1, 0, 1, 0, 0, 0]
+        moveAxis = [-1, 0, 1, 0, 0, 0]
         break
       case "Left":
         moveAxis = [1, 0, 0, 0, 0, 0]
@@ -388,14 +388,16 @@ const gui = ( p ) => {
 
   function resetButtonHandler(button) {
     clearSelections()
-    rosComm.returnHome()
-    setTimeout(setForwardPosition, 3000)
+    // rosComm.returnHome()
+    setForwardPosition()
+    // setTimeout(setForwardPosition, 3000)
     if (typeof recorder !== 'undefined') {
       recorder.stop()
     }
   }
 
   function setForwardPosition() {
+    // rosComm.fingerPositionSet(0, 0, 0)
     rosComm.positionForward()
     rosComm.setTimeout(15000)
   }

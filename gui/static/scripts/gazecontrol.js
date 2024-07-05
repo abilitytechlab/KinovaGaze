@@ -119,7 +119,7 @@ GazeControl = {};
                     this.p.text(this.label, this.x, this.y, this.w, this.h)
                 } 
                 else if(this.label instanceof p5.Image) {
-                    this.p.rectMode(this.p.CENTER);
+                    this.p.imageMode(this.p.CENTER);
                     let scale
                     if(this.label.width/this.label.height > this.w/this.h) {
                         scale = this.w/this.label.width

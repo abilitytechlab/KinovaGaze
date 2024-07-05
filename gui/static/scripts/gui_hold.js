@@ -138,6 +138,7 @@ const gui = ( p ) => {
     lockButton = new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, lockButtons, lockButtonHandler, "Lock", p.loadImage("static/icons/icons_lock.svg"), 1000, p.color(0, 150, 50), p.color(200, 50, 0), p.color(200, 200, 50))
     topBarButtons.push(lockButton)
     lockButtons.push(lockButton)
+    grid.set(0, 3, 1, 1)
     unlockButton = new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, lockButtons, unLockButtonHandler, "Unlock", p.loadImage("static/icons/icons_unlock.svg"), 2000, p.color(200, 50, 0), p.color(0, 150, 50), p.color(200, 200, 50))
     topBarButtons.push(unlockButton)
     lockButtons.push(unlockButton)
@@ -324,7 +325,7 @@ const gui = ( p ) => {
         moveAxis = [0, 0, 1, 0, 0, 0]
         break
       case "Up Right":
-        moveAxis = [1, 0, 1, 0, 0, 0]
+        moveAxis = [-1, 0, 1, 0, 0, 0]
         break
       case "Left":
         moveAxis = [1, 0, 0, 0, 0, 0]
@@ -412,14 +413,16 @@ const gui = ( p ) => {
 
   function resetButtonHandler(button) {
     clearSelections()
-    rosComm.returnHome()
-    setTimeout(setForwardPosition, 3000)
+    // rosComm.returnHome()
+    setForwardPosition()
+    // setTimeout(setForwardPosition, 3000)
     if (typeof recorder !== 'undefined') {
       recorder.stop()
     }
   }
 
   function setForwardPosition() {
+    // rosComm.fingerPositionSet(0, 0, 0)
     rosComm.positionForward()
     rosComm.setTimeout(15000)
   }

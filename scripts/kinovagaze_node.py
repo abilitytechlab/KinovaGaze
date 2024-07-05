@@ -129,7 +129,7 @@ class Kinova_Actions:
     def set_timeout_rosmsg(self, milliseconds):
         self.set_timeout(int(milliseconds.data))
 
-    def set_timeout(self, milliseconds, verbose=True):
+    def set_timeout(self, milliseconds, verbose=False):
         if(milliseconds > self.timeout):
             self.timeout=milliseconds
         if(verbose): rospy.loginfo(f"Timeout: {self.timeout}")

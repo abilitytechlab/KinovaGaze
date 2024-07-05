@@ -4,3 +4,4 @@ gui/cmake/
 gui/lib/
 gui/share/
 gui/pyvenv.cfg
+gui/venv/

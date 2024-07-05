@@ -257,13 +257,16 @@ const gui = ( p ) => {
 
   function badTargetHandler(button) {
     score -= 3
+    buttonsHit += 1
+    let hitSpeed = activeButtonsTime[button.name]
+    averageHitSpeed = (averageHitSpeed*(buttonsHit-1)+hitSpeed)/buttonsHit
+
     button.reset()
     button.hide()
-    hitSpeed = activeButtonsTime[button.name]
-    buttonsHit += 1
+    delete activeButtonsTime[button.name]
 
     if (typeof recorder !== 'undefined') {
-      recorder.write(["Bad target hit!", button, score])
+      recorder.write(["Bad target hit", button, hitSpeed, score])
     }
   }
 
