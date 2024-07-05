@@ -1,7 +1,8 @@
 # KinovaGaze
 
 KinovaGaze is a system for controlling a Kinova Jaco robotic arm using gaze.
-# Use
+
+# Using
 
 
 # Setup
