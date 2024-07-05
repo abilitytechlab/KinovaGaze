@@ -82,11 +82,12 @@ class GUIServer():
             return
         if(self.videoCapture is None or not self.videoCapture.isOpened()):
             # The -1 should find at least one webcam, if you need to use a different webcam or if it doesn't find the webcam try changing this to 0 or higher.
-            # cv2.CAP_OPENCV_MJPEG specifies the OpenCV MotionJPEG codec, try in case of issues try changing this to CAP_V4L2 
+            # If your camera doesn't work, you might need to add the argument cv2.CAP_V4L2 or cv2.CAP_OPENCV_MJPEG and remove the first videoCapture.set() line.
             videoCapture = cv2.VideoCapture(-1)
             if(videoCapture is None and not videoCapture.isOpened()):
                 return {"Retry-After": "10", "Cache-Control": "no-cache"}, 503
             
+            # If a video encoder is specified in the cv2.VideoCapture initialisation, remove the next line.
             videoCapture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
             #print(cv2.getBuildInformation())
             #input("Press Enter to continue...")

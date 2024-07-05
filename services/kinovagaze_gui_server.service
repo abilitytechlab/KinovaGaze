@@ -1,0 +1,15 @@
+[Unit]
+Description=Kinovagaze GUI Server Service
+After=network.target
+
+[Service]
+Type=simple
+User=kinovagaze
+WorkingDirectory=/home/kinovagaze
+Environment="HOME=/home/kinovagaze"
+ExecStart=/bin/bash -c 'python3 ~/catkin_ws/src/kinovagaze/gui/gui_server.py'
+Restart=always
+RestartSec=10s
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,18 @@
+[Unit]
+Description=Kinova ROS Service
+After=network.target
+
+[Service]
+Type=simple
+User=kinovagaze
+WorkingDirectory=/home/kinovagaze
+Environment="HOME=/home/kinovagaze"
+ExecStart=/bin/bash -c '. /opt/ros/noetic/setup.bash && . /home/kinovagaze/catkin_ws/devel/setup.bash && /usr/bin/stdbuf -oL -eL roslaunch --wait kinova_bringup kinova_robot.launch kinova_robotType:=j2n6s300 2>&1'
+StandardOutput=journal
+StandardError=journal
+Restart=always
+RestartSec=10s
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target

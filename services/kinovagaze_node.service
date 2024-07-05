@@ -1,0 +1,18 @@
+[Unit]
+Description=KinovaGaze ROS Node Service
+After=network.target
+
+[Service]
+Type=simple
+User=kinovagaze
+WorkingDirectory=/home/kinovagaze
+Environment="HOME=/home/kinovagaze"
+ExecStart=/bin/bash -c '. /opt/ros/noetic/setup.bash && . /home/kinovagaze/catkin_ws/devel/setup.bash && /usr/bin/stdbuf -oL -eL rosrun kinovagaze kinovagaze_node.py'
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONUNBUFFERED=1
+Restart=always
+RestartSec=10s
+
+[Install]
+WantedBy=default.target

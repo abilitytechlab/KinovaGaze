@@ -158,7 +158,7 @@ If everything's okay, you can now connect to the Pi over SSH on your local machi
 ssh kinovagaze@kinovagaze.local
 ```
 
-## Setup swap file
+### Setup swap file
 The Raspberry Pi 3 only has 1GB of RAM, which can cause issues during installation. As such it is recommended to setup a swap file. The commands below will install a 3GiB swap file, so the total memory available is 4GiB.
 
 ```
@@ -169,7 +169,7 @@ sudo swapon /swapfile
 echo -e "/swapfile none swap sw 0 0" | sudo tee -a /etc/fstab
 ```
 
-## Install ROS and setup environment
+### Install ROS and setup environment
 To install ROS you can follow the instructions over at https://wiki.ros.org/noetic/Installation/Ubuntu, or you can follow the specific instructions below.
 
 Setup sources for ROS:
@@ -205,7 +205,7 @@ sudo rosdep init
 rosdep update
 ```
 
-## Setup ROS environment
+### Setup ROS environment
 This is the workspace in which we'll be installing most of KinovaGaze. Use the instructions over at https://wiki.ros.org/ROS/Tutorials/InstallingandConfiguringROSEnvironment or follow the instructions below.
 
 Create the workspace:
@@ -221,7 +221,7 @@ echo "source ~/catkin_ws/devel/setup.bash" >> ~/.bashrc
 source ~/.bashrc
 ```
 
-## Install Kinova-ROS Noetic
+### Install Kinova-ROS Noetic
 This is the ROS stack for controlling the arm. Documentation is over at https://github.com/Kinovarobotics/kinova-ros. The installation instructions below are based on the ones found there, but modified for Kinovagaze.
 
 Clone Kinova-ROS:
@@ -241,4 +241,74 @@ sudo apt install ros-noetic-moveit
 sudo apt install ros-noetic-trac-ik
 ```
 
-Run catkin_make:
+Run catkin_make (if you only have 1GB of RAM and no swap, replace all `catkin_make` commands with `catkin_make -j1`):
+```
+cd ~/catkin_ws
+catkin_make
+```
+
+Setup Kinova USB rules:
+```
+sudo cp ~/catkin_ws/src/kinova-ros/kinova_driver/udev/10-kinova-arm.rules /etc/udev/rules.d/
+```
+
+We'll need to install shared libraries for Raspberry Pi 3. First clone the repository containing them, then copy them to the right folder and finally delete the remaining files.
+```
+mkdir ~/catkin_ws/src/kinova-ros/kinova_driver/lib/arm-linux-gnueabihf
+cd ~
+git clone https://github.com/Kinovarobotics/kinova_sdk_recompiled
+cp "~/kinova_sdk_recompiled/raspberry pi 3/_SO/. ~/catkin_ws/src/kinova-ros/kinova_driver/lib/arm-linux-gnueabihf
+rm -rf ~/kinova_sdk_recompiled
+```
+
+The new files are named incorrectly, rename them:
+```
+cd ~/catkin_ws/src/kinova-ros/kinova_driver/lib/arm-linux-gnueabihf
+mv Kinova.API.CommLayerUbuntu.so USBCommLayerUbuntu.so
+mv Kinova.API.EthCommLayerUbuntu.so EthCommLayerUbuntu.so
+mv Kinova.API.USBCommandLayerUbuntu.so USBCommandLayerUbuntu.so
+mv Kinova.API.EthCommandLayerUbuntu.so EthCommandLayerUbuntu.so
+```
+
+### Install rosbridge_suite
+Install the communication systen between ROS and the web interface.
+```
+sudo apt install ros-noetic-rosbridge-suite
+cd ~/catkin_ws
+catkin_make
+```
+
+### Install KinovaGaze files
+Now we can set up the custom files of KinovaGaze.
+
+Clone and install the KinovaGaze files. Replace [url] with the repository where you found this readme file.
+```
+cd ~/catkin_ws/src
+git clone [url]
+```
+
+We'll need to set up python with the right modules. Unfortunately I had a lot of issues doing this in a clean, reproducable way, as such I cannot give much help with this. I was unable to set up a Python Virtual Environment, and therefore also unable to test which versions of which modules needed to be installed. Trying to install or update a lot of dependencies causes issues with the pre-installed packages (especially numpy and cmake), so you may have to use apt to uninstall the old system versions of the packages because else you'll likely get vague error messages when trying to install. Directly using the requirements.txt file will likely not work and it might be incomplete or incorrect, but it should serve as a general guide of what needs to be installed. Finally: Installing some of these modules (especially numpy) will take a long time (might be up to an hour!), so keep that in mind.
+
+To get your webcam working, you might need to experiment with changing some code in the method `def video_feed(self)` of the file `~/catkin_ws/src/kinovagaze/gui/gui_server.py`.
+
+### Setup auto start on boot
+Finally we'll install all needed programs as services so that they'll automatically start on boot.
+
+```
+cp -r ~/catkin_ws/src/kinovagaze/services/. /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable kinova-ros.service
+sudo systemctl enable kinovagaze_gui_server.service
+sudo systemctl enable kinovagaze_node.service
+sudo systemctl enable rosbridge_server.service
+```
+
+The service isc-dhcp-server is supposed to start automatically on boot, but sometimes it fails. You can change `/lib/systemd/system/isc-dhcp-server.service` to make it restart after exiting by changing the file to look like this:
+```
+[Service]
+   [...]
+Restart=on
+RestartSec=10s
+
+[...]
+```

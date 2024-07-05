@@ -1,0 +1,15 @@
+[Unit]
+Description=Rosbridge Server Service
+After=network.target
+
+[Service]
+Type=simple
+User=kinovagaze
+WorkingDirectory=/home/kinovagaze
+Environment="HOME=/home/kinovagaze"
+ExecStart=/bin/bash -c '. /opt/ros/noetic/setup.bash && . /home/kinovagaze/catkin_ws/devel/setup.bash && roslaunch rosbridge_server rosbridge_websocket.launch'
+Restart=always
+RestartSec=10s
+
+[Install]
+WantedBy=default.target
