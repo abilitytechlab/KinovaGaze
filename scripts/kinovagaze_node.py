@@ -1,3 +1,38 @@
+"""KinovaGaze Node
+
+This file communicates between the KinovaGaze web interface and the Kinova ROS node.
+
+Requires the Kinova ROS node to be running in a separate thread.
+
+Contains a timeout system where a timeout value continuously counts down and stops all arm movement if it reaches 0.
+This is a safety feature to stop the arm from moving if the interface disconnects.
+The timeout value can be set via a message and should not be set higher than needed. It is automatically set to 1000ms upon receiving any movement command.
+Internally, unlock_movement() has to be called before any movement to ensure the arm is unlocked.
+
+Relative and continuous movement is relative to the tool, meaning that movement happens from the perspective of the hand and not the base.
+With the exception of the roll axis of the tool, which is not taken into account.
+
+It provides the following functions:
+    * kinovagaze/tool_move_absolute, type: kinova_msgs.msg.KinovaPose
+        Moves the tool to an absolute position in Cartesian space
+    * kinovagaze/tool_move_relative, type: kinova_msgs.msg.KinovaPose
+        Moves the tool relative to it's current position in Cartesian space
+    * kinovagaze/tool_move_continuous, type: kinova_msgs.msg.PoseVelocity
+        Moves the tool continuously until a stop message is received, in Cartesian space
+    * kinovagaze/finger_position_set, type: kinova_msgs.msg.FingerPosition
+        Sets the position of each finger, takes 3 values with with 0 being fully open and 100 being fully closed.
+    * kinovagaze/stop_movement, type: std_msgs.msg.Empty
+        Stops all movement of the arm
+    * kinovagaze/return_home, type: std_msgs.msg.Empty
+        Homes the arm, must be called before tool movement commands if the arm has been turned off
+    * kinovagaze/msg_send, type: std_msgs.msg.String
+        Prints the received message to the console
+    * kinovagaze/get_tool_pose, std_msgs.msg.Empty
+        Prints the current tool pose to the console
+    * kinovagaze/timeout, std_msgs.msg.Int32
+        Sets the timeout value, in milliseconds
+"""
+
 #!/usr/bin/env python
 import sys
 import signal
@@ -17,10 +52,31 @@ from pyquaternion import Quaternion
 prefix = "j2n6s300"
 
 class Kinova_Actions:
+    """Contains methods for all actions that the node can perform, including the timeout system.
+
+    For the timeout system to work, spin() should be called which uses the current thread for counting down.
+
+    Attributes
+    ----------
+    enforce_foward : boolean
+        Whether the tool should be forced into a single direction, effectively disabling rotation
+    forward : int[3]
+        eulerXYZ degrees direction to set tool if enforce_forward is enabled
+    current_tool_pose
+        Stores the last received tool pose from the Kinova ROS stack.
+    stopped : boolean
+        True if arm commands are disabled
+    timeout : int
+        Time until movement is stopped in ms
+    prefix : String
+        Kinova ROS prefix for arm, default: "j2n6s300"
+    max_finger_value : int
+        Maximum value for finger range of Kinova arm, default: 6800
+    """
     enforce_forward = True
     forward = [90, 0, 0]
-    current_tool_pose = None
 
+    current_tool_pose = None
     stopped = False
     timeout = 1000
 
@@ -65,6 +121,7 @@ class Kinova_Actions:
         self.movement_publisher = rospy.Publisher(f'/{prefix}_driver/in/cartesian_velocity', kinova_msgs.msg.PoseVelocity, queue_size=10)
 
     # class Kinova_Continuous_Driver:
+    #     """Unused class for sending velocity commands to the arm."""
     #     movement = kinova_msgs.msg.PoseVelocity()
         
     #     def __init__(self, frequency = 100):
@@ -500,9 +557,6 @@ def rotate_movement_towards_tool(tool_pose, movement, verbose=False, forward=Fal
             rospy.loginfo(rotated_movement)
         
         return rotated_movement
-
-def correct_path(start, direction, pose):
-    pass
 
 exit_program = False
 def signal_handler(signal, frame):
