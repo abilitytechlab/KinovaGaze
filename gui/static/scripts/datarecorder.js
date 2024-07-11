@@ -8,6 +8,11 @@
             this.filename = filename
         }
 
+        /**
+         * Initialises the recorder to capture a certain canvas, does not begin recording.
+         *
+         * @param {*} canvas
+         */
         initialize(canvas) {
             this.videoRecorder = new p5.VideoRecorder(canvas);
             this.videoRecorder.onFileReady = this.saveVideo;

@@ -39,6 +39,7 @@ const gui = ( p ) => {
   p.setup = () => {
     canvas = p.createCanvas(baseWidth, baseHeight)
     updateCanvasDimensions()
+    console.log(typeof canvas)
 
     rosComm = new RosComm('ws://kinovagaze.local:9090', onConnection, onError, onClose)
     window.rosComm = rosComm // Allows sending ros commands via the browser console

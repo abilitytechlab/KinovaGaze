@@ -10,7 +10,7 @@ The timeout value can be set via a message and should not be set higher than nee
 Internally, unlock_movement() has to be called before any movement to ensure the arm is unlocked.
 
 Relative and continuous movement is relative to the tool, meaning that movement happens from the perspective of the hand and not the base.
-With the exception of the roll axis of the tool, which is not taken into account.
+The roll axis of the tool is only applied to translation movements and not rotary movements which are always relative to a plane perpundicular to the base.
 
 It provides the following functions:
     * kinovagaze/tool_move_absolute, type: kinova_msgs.msg.KinovaPose
@@ -58,20 +58,20 @@ class Kinova_Actions:
 
     Attributes
     ----------
-    enforce_foward : boolean
+    enforce_foward : bool
         Whether the tool should be forced into a single direction, effectively disabling rotation
     forward : int[3]
         eulerXYZ degrees direction to set tool if enforce_forward is enabled
     current_tool_pose
         Stores the last received tool pose from the Kinova ROS stack.
-    stopped : boolean
+    stopped : bool
         True if arm commands are disabled
     timeout : int
         Time until movement is stopped in ms
     prefix : String
-        Kinova ROS prefix for arm, default: "j2n6s300"
+        Kinova ROS prefix for arm, by default "j2n6s300"
     max_finger_value : int
-        Maximum value for finger range of Kinova arm, default: 6800
+        Maximum value for finger range of Kinova arm, by default 6800
     """
     enforce_forward = True
     forward = [90, 0, 0]
@@ -193,7 +193,7 @@ class Kinova_Actions:
     
     def set_finger_position(self, finger_positions):
         rospy.loginfo(f"Setting finger positions to: {finger_positions}")
-        self.unlock_movement()
+        self.unlock_movement(verbose=False)
         
         goal = kinova_msgs.msg.SetFingersPositionGoal()
         goal.fingers.finger1 = float(finger_positions.finger1)/100*self.max_finger_value
@@ -211,8 +211,18 @@ class Kinova_Actions:
             return None
         
     def tool_move_continuous(self, movement):
-        self.stop_movement(quick=True)
-        self.unlock_movement()
+        """Moves tool continuously in a direction relative to current tool pose until stopped.
+
+        Uses the Kinova ROS add pose service to construct a path which continuously moves in a direction relative to the starting tool pose.
+        Movement is not truely endless as it will stop after about 1 meter of translation movement or about 9 full rotations.
+        
+        Arguments
+        ---------
+        movement : kinova_msgs.msg.PoseVelocity
+            Axis to move in, each axis should be 1, 0, or -1
+        """
+        self.stop_movement(verbose=False)
+        self.unlock_movement(verbose=False)
 
         starting_pose = tool_pose_to_EulerXYZ(self.current_tool_pose)
 
@@ -273,12 +283,19 @@ class Kinova_Actions:
             rospy.loginfo("add_pose_to_Cartesian_trajectory or  service call failed: %s"%e)
 
     def tool_move_relative(self, pose):
-        self.stop_movement(quick=True)
-        self.unlock_movement()
+        """Moves tool relative to the current tool pose in meters and radians.
+
+        Arguments
+        ---------
+        pose : kinova_msgs.msg.KinovaPose
+            Relative target position in meters and radians.
+        """
+        self.stop_movement(verbose=False)
+        self.unlock_movement(verbose=False)
 
         starting_pose = tool_pose_to_EulerXYZ(self.current_tool_pose)
 
-        relative_pose = rotate_movement_towards_tool(self.current_tool_pose, [pose.X, pose.Y, pose.Z, pose.ThetaX, pose.ThetaY, pose.ThetaZ], verbose=False, forward=self.forward)
+        relative_pose = rotate_movement_towards_tool(self.current_tool_pose, [pose.X, pose.Y, pose.Z, pose.ThetaX, pose.ThetaY, pose.ThetaZ], verbose=False)
 
         rospy.loginfo("Starting continuous motion")
         rospy.loginfo(f"Starting pose: \n{starting_pose}")
@@ -318,8 +335,15 @@ class Kinova_Actions:
             rospy.loginfo("add_pose_to_Cartesian_trajectory or  service call failed: %s"%e)
 
     def tool_move_absolute(self, pose):
-        self.stop_movement(quick=True)
-        self.unlock_movement()
+        """Moves tool in absolute space with the origin approxiately at the robot base, in meters and radians.
+
+        Arguments
+        ---------
+        pose : kinova_msgs.msg.KinovaPose
+            Target position in meters and radians.
+        """
+        self.stop_movement(verbose=False)
+        self.unlock_movement(verbose=False)
 
         goal = kinova_msgs.msg.ArmPoseGoal()
         
@@ -356,7 +380,9 @@ class Kinova_Actions:
             return None
 
     def return_home(self, argument = None):
-        self.unlock_movement()
+        """Homes the arm, calibrating it in the process.
+        """
+        self.unlock_movement(verbose=False)
         rospy.loginfo("Homing arm...")
         try:
             response = self.home_arm_service()
@@ -364,32 +390,35 @@ class Kinova_Actions:
         except rospy.ServiceException as e:
             rospy.loginfo("home_arm service call failed: %s"%e)
 
-    def stop_movement(self, quick=False, verbose=False):
-        rospy.loginfo(f'Stopping all movements, quick = {quick}')
+    def stop_movement(self, verbose=True):
+        """Stops and disables all movement of the arm.
 
-        loops = 1
-        if(quick != True): 
-            quick = False
-            loops = 1
+        Arguments
+        ---------
+        verbose : bool, optional
+            Set to False to only print error output, by default True
+        """
 
-        for i in range(loops):
-            # self.movement_publisher.publish(kinova_msgs.msg.PoseVelocity())
-            # self.tool_pose_client.cancel_all_goals()
-            # self.finger_position_client.cancel_all_goals()
-            try:
-                response_stop = self.stop_service()
-                response_clear_trajectories = self.tool_clear_trajectories()
-                if(verbose == True): 
-                    rospy.loginfo(response_stop, response_clear_trajectories)
-            except rospy.ServiceException as e:
-                rospy.loginfo("stop service call failed: %s"%e)
+        if(verbose):
+            rospy.loginfo(f'Stopping all movements.')
 
-            if(quick == False):
-                time.sleep(0.05*i)
+        try:
+            response_stop = self.stop_service()
+            response_clear_trajectories = self.tool_clear_trajectories()
+            self.stopped = True
+            if(verbose == True): 
+                rospy.loginfo(response_stop, response_clear_trajectories)
+        except rospy.ServiceException as e:
+            rospy.loginfo("stop service call failed: %s"%e)
 
-        self.stopped = True
+    def unlock_movement(self, verbose=True):
+        """Unlocks movement of the arm after it has been disabled,
 
-    def unlock_movement(self, verbose=False):
+        Arguments
+        ---------
+        verbose : bool, optional
+            Set to False to only print error output, by default True
+        """
         try:
             response = self.start_service()
             if(verbose == True): 
@@ -402,16 +431,46 @@ class Kinova_Actions:
         self.stopped = False
         
     def get_tool_pose(self, argument = None):
+        """Print last received tool pose.
+        """
         rospy.loginfo(self.current_tool_pose)
 
     def message_from_GUI(self, data):
+        """Prints content of message data
+
+        Arguments
+        ---------
+        data : std_msgs.msg.String
+            Message with string to print
+        """
         rospy.loginfo(f'Message from GUI: {data}')
         rospy.loginfo(rospy.get_caller_id() + 'Message from GUI: %s', data.data)
 
     def receive_tool_pose(self, toolpose):
+        """Callback for tool pose message from Kinova ROS, stores pose as class attribute.
+
+        Argument
+        --------
+        toolpose : geometry_msgs.msg.PoseStamped
+            Current pose of tool
+        """
         self.current_tool_pose = toolpose
 
 def Degrees2Radians(degrees, verbose=False):
+    """Translates a list of values in degrees to a list of values in radians
+    
+    Arguments
+    ---------
+    degrees : list of float
+        List of angles in degrees to be translated
+    verbose : bool, optional
+        Set to True to enable log output, by default False
+
+    Returns
+    -------
+    list of float
+        List of angles in radians
+    """
     if (verbose): rospy.loginfo(f"Degrees: {degrees}")
     constant = 2*math.pi/360.0
     radians = []
@@ -421,6 +480,20 @@ def Degrees2Radians(degrees, verbose=False):
     return radians
 
 def AddEulerToQuaternion(EulerXYZ_, Q_input):
+    """Adds EulerXYZ radian in list form to quaternion in list form
+    
+    Arguments
+    ---------
+    EulerXYZ_ : list of float
+        List of 3 floats representing an euler 3D angle in radians
+    Q_input : list of float
+        List of 4 floats representing a quaternion
+
+    Returns
+    -------
+    list of float
+        List of 4 floats representing a quaternion, sum of EulerXYZ_ and Q_input
+    """
     EulerInput = Quaternion2EulerXYZ(Q_input)
     sumEulerXYZ_ = [
         EulerXYZ_[0] + EulerInput[0],
@@ -431,6 +504,18 @@ def AddEulerToQuaternion(EulerXYZ_, Q_input):
     return sumQuaternion
 
 def QuaternionNorm(Q_raw):
+    """Normalises a quaternion in list form.
+    
+    Arguments
+    ---------
+    Q_raw : list of float
+        List of 4 floats representing a quaternion
+
+    Returns
+    -------
+    list of float
+        List of 4 floats representing a quaternion
+    """
     qx_temp,qy_temp,qz_temp,qw_temp = Q_raw[0:4]
     qnorm = math.sqrt(qx_temp*qx_temp + qy_temp*qy_temp + qz_temp*qz_temp + qw_temp*qw_temp)
     qx_ = qx_temp/qnorm
@@ -441,6 +526,20 @@ def QuaternionNorm(Q_raw):
     return Q_normed_
 
 def Quaternion2EulerXYZ(Q_raw, verbose=False):
+    """Converts a quaternion in list form to EulerXYZ radians in list form.
+    
+    Arguments
+    ---------
+    Q_raw: list of float
+        List of 4 floats representing a quaternion
+    verbose : bool, optional
+        Set to True to enable log output, by default False
+
+    Returns
+    -------
+    list of float
+        List of 3 floats representing an euler 3D angle in radians
+    """
     if (verbose): rospy.loginfo(f"Quaternion: {Q_raw}")
     Q_normed = QuaternionNorm(Q_raw)
     qx_ = Q_normed[0]
@@ -452,10 +551,24 @@ def Quaternion2EulerXYZ(Q_raw, verbose=False):
     ty_ = math.asin(2 * qw_ * qy_ + 2 * qx_ * qz_)
     tz_ = math.atan2((2 * qw_ * qz_ - 2 * qx_ * qy_), (qw_ * qw_ + qx_ * qx_ - qy_ * qy_ - qz_ * qz_))
     EulerXYZ_ = [tx_,ty_,tz_]
-    rospy.loginfo(f"Converted to EulerXYZ: {EulerXYZ_}")
+    if (verbose): rospy.loginfo(f"Converted to EulerXYZ: {EulerXYZ_}")
     return EulerXYZ_
 
 def EulerXYZ2Quaternion(EulerXYZ_, verbose=False):
+    """Converts EulerXYZ radians in list form to a quaternion in list form.
+
+    Parameters
+    ----------
+    EulerXYZ_ : list of float
+        List of 3 floats representing an euler 3D angle in radians
+    verbose : bool, optional
+        Set to True to enable log output, by default False
+
+    Returns
+    -------
+    list of float
+        List of 4 floats representing a quaternion
+    """
     if (verbose): rospy.loginfo(f"EulerXYZ: {EulerXYZ_}")
     tx_, ty_, tz_ = EulerXYZ_[0:3]
     sx = math.sin(0.5 * tx_)
@@ -475,6 +588,18 @@ def EulerXYZ2Quaternion(EulerXYZ_, verbose=False):
     return Q_
 
 def tool_pose_to_EulerXYZ(pose):
+    """Converts Kinova tool pose to vector with EulerXYZ in radians
+
+    Parameters
+    ----------
+    pose : geometry_msgs.msg.PoseStamped
+        Kinova tool pose
+
+    Returns
+    -------
+    list of float
+        List of 6 floats representing a vector and EulerXYZ radians
+    """
     rotation = Quaternion2EulerXYZ([
         pose.pose.orientation.x, 
         pose.pose.orientation.y, 
@@ -491,75 +616,85 @@ def tool_pose_to_EulerXYZ(pose):
         rotation[2]
     ]
 
-def rotate_movement_towards_tool(tool_pose, movement, verbose=False, forward=False):
-        if (verbose):
-            rospy.loginfo("Tool orientation:")
-            rospy.loginfo(Quaternion2EulerXYZ([
-                tool_pose.pose.orientation.x,
-                tool_pose.pose.orientation.y, 
-                tool_pose.pose.orientation.z, 
-                tool_pose.pose.orientation.w]))
-            rospy.loginfo("Movement before:")
-            rospy.loginfo(movement)
+def rotate_movement_towards_tool(tool_pose, movement, verbose=False):
+    """Rotates a givem movement to become relative to the current tool pose
 
-        tool_rotation = Quaternion(
-            tool_pose.pose.orientation.w,
+    Parameters
+    ----------
+    tool_pose : geometry_msgs.msg.PoseStamped
+        Kinova tool pose
+    movement : list of float
+        List of 6 floats representing a vector and EulerXYZ radians
+    verbose : bool, optional
+        Set to True to enable log output, by default False
+
+    Returns
+    -------
+    list of float
+        List of 6 floats representing a vector and EulerXYZ radians
+    """
+    if (verbose):
+        rospy.loginfo("Tool orientation:")
+        rospy.loginfo(Quaternion2EulerXYZ([
             tool_pose.pose.orientation.x,
             tool_pose.pose.orientation.y, 
-            tool_pose.pose.orientation.z
-            )
-        if (forward != False):
-            forward = EulerXYZ2Quaternion(Degrees2Radians([forward[0], forward[1], forward[2]]))
-            tool_rotation = Quaternion(
-                x = forward[0],
-                y = forward[1],
-                z = forward[2],
-                w = forward[3]
-            )
-        
-        if (verbose): rospy.loginfo(f"tool_rotation_axis: {tool_rotation.axis}")
-        # tool_rotation_offset = Quaternion(axis=[1, 0, 0], angle=math.pi / 2)
-        # tool_rotation = tool_rotation + tool_rotation_offset
+            tool_pose.pose.orientation.z, 
+            tool_pose.pose.orientation.w]))
+        rospy.loginfo("Movement before:")
+        rospy.loginfo(movement)
 
-        linear_movement = [
-            movement[0],
-            movement[2],
-            -movement[1]
-        ]
-        rotated_linear_movement = tool_rotation.rotate(linear_movement)
+    tool_rotation = Quaternion(
+        tool_pose.pose.orientation.w,
+        tool_pose.pose.orientation.x,
+        tool_pose.pose.orientation.y, 
+        tool_pose.pose.orientation.z
+        )
+    
+    if (verbose): rospy.loginfo(f"tool_rotation_axis: {tool_rotation.axis}")
+    # tool_rotation_offset = Quaternion(axis=[1, 0, 0], angle=math.pi / 2)
+    # tool_rotation = tool_rotation + tool_rotation_offset
 
-        # tool_rotation_z = Quaternion(
-        #     axis=[0, 0, 1.0], radians = Quaternion2EulerXYZ([
-        #         tool_pose.pose.orientation.w,
-        #         tool_pose.pose.orientation.x, 
-        #         tool_pose.pose.orientation.y, 
-        #         tool_pose.pose.orientation.z
-        #     ])[2]
-        #     )
-        
-        # angular_movement = [
-        #     -movement[3],
-        #     movement[4],
-        #     movement[5]
-        # ]
-        # rotated_angular_movement = tool_rotation_z.rotate(angular_movement)
-        
-        rotated_movement = copy.copy(movement)
-        rotated_movement[0] = rotated_linear_movement[0]
-        rotated_movement[1] = rotated_linear_movement[1]
-        rotated_movement[2] = rotated_linear_movement[2]
-        # rotated_movement[3] = rotated_angular_movement[0]
-        # rotated_movement[4] = rotated_angular_movement[1]
-        # rotated_movement[5] = rotated_angular_movement[2]
+    linear_movement = [
+        movement[0],
+        movement[2],
+        -movement[1]
+    ]
+    rotated_linear_movement = tool_rotation.rotate(linear_movement)
 
-        if(verbose):
-            rospy.loginfo("Movement after:")
-            rospy.loginfo(rotated_movement)
-        
-        return rotated_movement
+    # tool_rotation_z = Quaternion(
+    #     axis=[0, 0, 1.0], radians = Quaternion2EulerXYZ([
+    #         tool_pose.pose.orientation.w,
+    #         tool_pose.pose.orientation.x, 
+    #         tool_pose.pose.orientation.y, 
+    #         tool_pose.pose.orientation.z
+    #     ])[2]
+    #     )
+    
+    # angular_movement = [
+    #     -movement[3],
+    #     movement[4],
+    #     movement[5]
+    # ]
+    # rotated_angular_movement = tool_rotation_z.rotate(angular_movement)
+    
+    rotated_movement = copy.copy(movement)
+    rotated_movement[0] = rotated_linear_movement[0]
+    rotated_movement[1] = rotated_linear_movement[1]
+    rotated_movement[2] = rotated_linear_movement[2]
+    # rotated_movement[3] = rotated_angular_movement[0]
+    # rotated_movement[4] = rotated_angular_movement[1]
+    # rotated_movement[5] = rotated_angular_movement[2]
+
+    if(verbose):
+        rospy.loginfo("Movement after:")
+        rospy.loginfo(rotated_movement)
+    
+    return rotated_movement
 
 exit_program = False
 def signal_handler(signal, frame):
+    """Handle signals to stop program gracefully.
+    """
     rospy.loginfo("\nprogram exiting gracefully")
     global exit_program 
     exit_program = True
@@ -569,6 +704,13 @@ signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
 def setup_subscribers(kinova_actions):
+    """Subscribes to messages from GUI and Kinova ROS stack
+
+    Parameters
+    ----------
+    kinova_actions : Instance of Kinova_Actions
+        Instance of Kinova_Actions with callback methods
+    """
     rospy.Subscriber('kinovagaze/tool_move_absolute', kinova_msgs.msg.KinovaPose, kinova_actions.tool_move_absolute)
     rospy.Subscriber('kinovagaze/tool_move_relative', kinova_msgs.msg.KinovaPose, kinova_actions.tool_move_relative)
     rospy.Subscriber('kinovagaze/tool_move_continuous', kinova_msgs.msg.PoseVelocity, kinova_actions.tool_move_continuous)
