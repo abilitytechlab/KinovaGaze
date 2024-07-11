@@ -1,10 +1,19 @@
 "use strict";
 
+/**
+ * Start-Stop interface. Select an axis group, then select an axis and finally select start to begin movement. Select stop to stop the movement.
+ * Lock button locks the interface, reset button returns the arm to a predifined position.
+ * rosComm is exposed to the console to allow manual commands.
+ * Before the arm can move, use console to call rosComm.returnHome()
+ * 
+ * This file is sparcely documented. Relevant parts may be better documented in whack-a-button.js, roscomm.js and gazecontrol.js
+ * 
+ * @param {object} p - p5.js instance
+ */
 const gui = ( p ) => {
   let canvas
   const baseWidth = 640
   const baseHeight = 480
-  const aspectRatio = baseWidth / baseHeight
   let scaleFactor = 1
   let defaultTextSize = 32
 
@@ -36,10 +45,12 @@ const gui = ( p ) => {
   let strafeTabButton
   let forwardAndGrabTabButton
 
+  /**
+   * Sets up the canvas, rosComm, buttons, stream and recorder
+   */
   p.setup = () => {
     canvas = p.createCanvas(baseWidth, baseHeight)
     updateCanvasDimensions()
-    console.log(typeof canvas)
 
     rosComm = new RosComm('ws://kinovagaze.local:9090', onConnection, onError, onClose)
     window.rosComm = rosComm // Allows sending ros commands via the browser console
@@ -49,18 +60,19 @@ const gui = ( p ) => {
     createAxisButtons()
     createTopButtons()
     createBottomButtons()
-    cursorObject = new GazeControl.Cursor(p, buttons)
-    canvas.mouseOut(cursorObject.disable.bind(cursorObject))
-    canvas.mouseOver(cursorObject.enable.bind(cursorObject))
+    cursorObject = new GazeControl.Cursor(p, buttons, canvas)
 
     stream = p.createImg("/video_feed", "webcam feed", undefined, streamLoadedHandler)
-    stream.hide()
+    stream.hide() // Hides the HTML element of the stream so that only the version displayed via p5.js is visible
 
     if (typeof recorder !== 'undefined') {
       recorder.initialize(canvas)
     }
   }
 
+  /**
+   * Update and draw the UI
+   */
   p.draw = () => {
     p.textSize(defaultTextSize)
     dt = Date.now() - lastTime
@@ -93,13 +105,13 @@ const gui = ( p ) => {
       let stateText = ""
       switch (connectionState) {
         case "Closed":
-          stateText = "Connection to robot arm lost,\ncheck if arm is on and connected,\nthen try refreshing the page."
+          stateText = "Connection to KinovaGaze lost,\ncheck if arm is on and connected\nthen try refreshing the page."
           break
         case "Error":
-          stateText = "Error connecting to the robot arm,\ncheck if arm is on and connected,\nthen try refreshing the page."
+          stateText = "Error connecting to KinovaGaze,\ncheck if robot arm is on and connected\nthen try refreshing the page."
           break
         case "Loading":
-          stateText = "Connecting to the robot arm, please wait..."
+          stateText = "Connecting to KinovaGaze, please wait..."
           break
         default:
           stateText = "Something went wrong,\nplease reload the page."
@@ -119,21 +131,33 @@ const gui = ( p ) => {
       recorder.display(p)
     }
 
-    this.rosComm.setTimeout(1000)
+    this.rosComm.setTimeout(1000) // Safety mechanism where the arm will stop moving if the interface disconnects for a second
   }
 
+  /** 
+   * Callback function from rosComm for when the connection is established
+   */ 
   function onConnection() {
     connectionState = "Connected"
   }
 
+  /** 
+   * Callback function from rosComm for when the connection errors
+   */
   function onError() {
     connectionState = "Error"
   }
 
+  /**
+   * Callback function from rosComm for when the connection closes
+   */
   function onClose() {
     connectionState = "Closed"
   }
-
+  
+  /**
+   * Creates all the buttons for the top bar and sets their initial state
+   */
   function createTopButtons() {
     let grid = new GazeControl.Grid(0, 0, p.width, p.height * 1 / 7, 6, 1)
     grid.set(0, 0, grid.columns, grid.rows)
@@ -168,6 +192,9 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * Creates all the buttons for the bottom bar (aka the start button) and sets their initial state
+   */
   function createBottomButtons() {
     let grid = new GazeControl.Grid(0, p.height * 6 / 7, p.width, p.height * 1 / 7, 6, 1)
     grid.set(0, 0, grid.columns, grid.rows)
@@ -176,12 +203,11 @@ const gui = ( p ) => {
     addButton(startButton)
   }
 
+  /**
+   * Creates all the axis buttons
+   */
   function createAxisButtons() {
-    let webcamWidth = p.width
-    let webcamHeight = p.height * (5 / 7)
-    let webcamX = 0
-    let webcamY = (p.height - webcamHeight) / 2
-    let grid = new GazeControl.Grid(webcamX, webcamY, webcamWidth, webcamHeight, 5, 5)
+    let grid = new GazeControl.Grid(0, webcamY, (p.height-webcamHeight)/2, p.height*(5/7), 5, 5)
     let dwellDelay = 500
 
     grid.set(0, 0)
@@ -222,6 +248,10 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * A button which is part of a set where only one button can be active at a time.
+   * When activated, disables all other buttons in its set. Includes a callback for activation.
+   */
   class LatchingSetButton extends GazeControl.Button {
     constructor(x, y, w, h, buttonSet, callback, name = undefined, label = undefined, dwellDelay = 1000, defaultColor = p.color(150, 110, 10), hoverColor = p.color(255, 230, 0), activatedColor = p.color(222, 252, 55)) {
       console.log(label)
@@ -242,6 +272,10 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * A button which does not contain a mechanism for deactivating.
+   * Includes a callback for activating
+   */
   class LatchingButton extends GazeControl.Button {
     constructor(x, y, w, h, callback, name = undefined, label = undefined, dwellDelay = 1000, defaultColor = p.color(200, 50, 0), hoverColor = p.color(200, 200, 50), activatedColor = p.color(0, 200, 50)) {
       console.log(label)
@@ -256,6 +290,10 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * A button which deactivates when unhovered.
+   * Includes a callback for activating and for unhovering.
+   */
   class OneTimeButton extends GazeControl.Button {
     constructor(x, y, w, h, activateCallback, unhoverCallback, name = undefined, label = undefined, dwellDelay = 1000, defaultColor = p.color(200, 50, 0), hoverColor = p.color(200, 200, 50), activatedColor = p.color(0, 200, 50)) {
       console.log(label)
@@ -280,6 +318,10 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * Callback method for when an axis button is activated. Activates the stop and start buttons and stores an appropriate movement axis.
+   * @param {object} button - button which was activated
+   */
   function axisButtonHandler(button) {
     unhideStopButton()
     stopButton.reset()
@@ -332,6 +374,10 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * Callback method for when the stop button is activated. Stops movement and resets the axis and start buttons.
+   * @param {object} button - button which was activated
+   */
   function stopButtonHandler(button) {
     console.log("Stop!")
     rosComm.stopMovement()
@@ -346,6 +392,10 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * Callback method for when the start button is activated. Starts movement in the stored axis and disables the axis buttons.
+   * @param {object} button - button which was activated
+   */
   function startButtonHandler(button) {
     console.log("Start!")
     stopButton.enable()
@@ -354,8 +404,8 @@ const gui = ( p ) => {
       button.disable()
     }
 
-    console.log(moveAxis)
-    if (moveAxis.length == 3) {
+    console.log(`Started moving in axis ${moveAxis}`)
+    if (moveAxis.length == 3) { // An axis with three values is a finger movement, an axis with 6 values is a continuous tool movement
       rosComm.fingerPositionSet(moveAxis[0], moveAxis[1], moveAxis[2])
     } else {
       rosComm.toolMoveContinuous(moveAxis[0], moveAxis[1], moveAxis[2], moveAxis[3], moveAxis[4], moveAxis[5])
@@ -363,7 +413,12 @@ const gui = ( p ) => {
 
   }
 
+  /**
+   * Callback method for when the lock button is activated. Stops movement, disables all other buttons and reveals the unlock button.
+   * @param {object} button - button which was activated
+   */
   function lockButtonHandler(button) {
+    rosComm.stopMovement()
     clearSelections()
     for (const button of buttons) {
       if (button !== lockButton && button !== unlockButton) {
@@ -376,6 +431,10 @@ const gui = ( p ) => {
     lockButton.hide()
   }
 
+  /**
+   * Callback method for when the unlock button is activated. Enables all other buttons and reveals the lock button.
+   * @param {object} button - button which was activated
+   */
   function unLockButtonHandler(button) {
     for (const button of buttons) {
       if (button !== lockButton && button !== unlockButton) {
@@ -387,22 +446,27 @@ const gui = ( p ) => {
     unlockButton.hide()
   }
 
+  /**
+   * Callback method for when the reset button is activated. Clears axis group selection, returns the arm to the starting position and stops the recording.
+   * @param {object} button - button which was activated
+   */
   function resetButtonHandler(button) {
     clearSelections()
+
     // rosComm.returnHome()
-    setForwardPosition()
-    // setTimeout(setForwardPosition, 3000)
+    // rosComm.fingerPositionSet(0, 0, 0)
+    rosComm.positionForward()
+    rosComm.setTimeout(15000)
+
     if (typeof recorder !== 'undefined') {
       recorder.stop()
     }
   }
 
-  function setForwardPosition() {
-    // rosComm.fingerPositionSet(0, 0, 0)
-    rosComm.positionForward()
-    rosComm.setTimeout(15000)
-  }
-
+  /**
+   * Callback method for when the strafe tab button is activated. Hides all axis buttons, then unhides the strafe axis buttons. Also start the recording.
+   * @param {object} button - button which was activated
+   */
   function strafeTabButtonHandler(button) {
     for (const button of axisButtons) {
       button.hide()
@@ -415,6 +479,10 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * Callback method for when the forward/backward/grab tab button is activated. Hides all axis buttons, then unhides the forward/backward/grab axis buttons. Also start the recording.
+   * @param {object} button - button which was activated
+   */
   function forwardGrabTabButtonHandler(button) {
     for (const button of axisButtons) {
       button.hide()
@@ -427,6 +495,9 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * Hides the stop button, revealing all other top bar buttons.
+   */
   function hideStopButton() {
     for (const button of topBarButtons) {
       if (button.name != unlockButton) {
@@ -437,6 +508,9 @@ const gui = ( p ) => {
     stopButton.hide()
   }
 
+  /**
+   * Reveals the stop button, hiding all other top bar buttons.
+   */
   function unhideStopButton() {
     stopButton.unhide()
     for (const button of topBarButtons) {
@@ -444,6 +518,9 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * Clears all axis and axis group selections.
+   */
   function clearSelections() {
     startButton.reset()
     startButton.disable()
@@ -458,6 +535,10 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * Adds a button to the button array and stores its dimensions relative to the canvas
+   * @param {object} button - Button to add
+   */
   function addButton(button) {
     buttons.push(button)
     buttonDimentions[button.name] = {
@@ -468,10 +549,17 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * Callback for when the stream finishes loading.
+   * @param {object} image
+   */
   function streamLoadedHandler(image) {
     streamLoaded = true
   }
 
+  /**
+   * Update all button dimensions relative to the canvas size.
+   */
   function updateButtonDimensions() {
     for (const button of buttons) {
       let dimentions = buttonDimentions[button.name]
@@ -482,18 +570,26 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * Called by p5.js when the mouse moves, updates the cursor.
+   */
   p.mouseMoved = () => {
     if (typeof cursorObject !== 'undefined') {
       cursorObject.cursorMoved(p.mouseX, p.mouseY)
     }
   }
 
+  /**
+   * Called by p5.js when the window resizes, updates canvas and button dimensions
+   */
   p.windowResized = () => {
     updateCanvasDimensions()
     updateButtonDimensions()
   }
 
-
+  /**
+   * Updates the canvas dimensions to fill the entire window
+   */
   function updateCanvasDimensions() {
     let canvasWidth
     let canvasHeight

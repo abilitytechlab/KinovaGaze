@@ -1,5 +1,16 @@
 "use strict";
 
+/**
+ * Hold interface. Select an axis group, then select and hold an axis to move the arm. 
+ * Look away for movement to stop after 1 second, or look at the stop button to stop the arm more quickly.
+ * Lock button locks the interface, reset button returns the arm to a predifined position.
+ * rosComm is exposed to the console to allow manual commands.
+ * Before the arm can move, use console to call rosComm.returnHome()
+ * 
+ * This file is sparcely documented. Relevant parts may be better documented in whack-a-button.js, roscomm.js and gazecontrol.js
+ * 
+ * @param {object} p - p5.js instance
+ */
 const gui = ( p ) => {
   let canvas
   const baseWidth = 640
@@ -36,6 +47,9 @@ const gui = ( p ) => {
   let strafeTabButton
   let forwardAndGrabTabButton
 
+  /**
+   * Sets up the canvas, rosComm, buttons, stream and recorder
+   */
   p.setup = () => {
     canvas = p.createCanvas(baseWidth, baseHeight)
     updateCanvasDimensions()
@@ -60,6 +74,9 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * Update and draw the UI
+   */
   p.draw = () => {
     p.textSize(defaultTextSize)
     dt = Date.now() - lastTime
@@ -117,20 +134,34 @@ const gui = ( p ) => {
       p.textSize(defaultTextSize / 2)
       recorder.display(p)
     }
+
+    // This UI does not constantly update the timeout variable, only setting it when a movement is happening.
   }
 
+  /** 
+   * Callback function from rosComm for when the connection is established
+   */ 
   function onConnection() {
     connectionState = "Connected"
   }
 
+  /** 
+   * Callback function from rosComm for when the connection errors
+   */
   function onError() {
     connectionState = "Error"
   }
 
+  /**
+   * Callback function from rosComm for when the connection closes
+   */
   function onClose() {
     connectionState = "Closed"
   }
 
+  /**
+   * Creates all the buttons for the top bar and sets their initial state
+   */
   function createTopButtons() {
     let grid = new GazeControl.Grid(0, 0, p.width, p.height * 1 / 7, 6, 1)
 
@@ -161,6 +192,9 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * Creates all the buttons for the bottom bar (aka the stop button) and sets their initial state
+   */
   function createBottomButtons() {
     let grid = new GazeControl.Grid(0, p.height * 6 / 7, p.width, p.height * 1 / 7, 6, 1)
     grid.set(0, 0, grid.columns, grid.rows)
@@ -168,6 +202,9 @@ const gui = ( p ) => {
     addButton(stopButton)
   }
 
+  /**
+   * Creates all the axis buttons
+   */
   function createAxisButtons() {
     let webcamWidth = p.width
     let webcamHeight = p.height * (5 / 7)
@@ -214,6 +251,10 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * A button which is part of a set where only one button can be active at a time.
+   * When activated, disables all other buttons in its set. Includes a callback for activation.
+   */
   class LatchingSetButton extends GazeControl.Button {
     constructor(x, y, w, h, buttonSet, callback, name = undefined, label = undefined, dwellDelay = 1000, defaultColor = p.color(150, 110, 10), hoverColor = p.color(255, 230, 0), activatedColor = p.color(222, 252, 55)) {
       console.log(label)
@@ -234,20 +275,10 @@ const gui = ( p ) => {
     }
   }
 
-  class LatchingButton extends GazeControl.Button {
-    constructor(x, y, w, h, callback, name = undefined, label = undefined, dwellDelay = 1000, defaultColor = p.color(200, 50, 0), hoverColor = p.color(200, 200, 50), activatedColor = p.color(0, 200, 50)) {
-      console.log(label)
-      super(p, x, y, w, h, name, label, dwellDelay, defaultColor, hoverColor, activatedColor)
-      this.callback = callback
-    }
-    
-    onActivate() {
-      if(typeof(this.callback !== 'undefined')) {
-        this.callback(this)
-      }
-    }
-  }
-
+  /**
+   * A button which deactivates when unhovered.
+   * Includes a callback for activating and for unhovering.
+   */
   class OneTimeButton extends GazeControl.Button {
     constructor(x, y, w, h, activateCallback, unhoverCallback, name = undefined, label = undefined, dwellDelay = 1000, defaultColor = p.color(200, 50, 0), hoverColor = p.color(200, 200, 50), activatedColor = p.color(0, 200, 50)) {
       console.log(label)
@@ -272,6 +303,10 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * A button which stays active for a certain amount of time after being unhovered.
+   * Includes a callback for activating, unhovering and updating.
+   */
   class HoldButton extends GazeControl.Button {
     constructor(x, y, w, h, activateCallback, unhoverCallback, updateCallback, timeout, name = undefined, label = undefined, dwellDelay = 1000, defaultColor = p.color(200, 50, 0), hoverColor = p.color(200, 200, 50), activatedColor = p.color(0, 200, 50)) {
       console.log(label)
@@ -282,6 +317,10 @@ const gui = ( p ) => {
       this.timeout = timeout
     }
 
+    /**
+     * If the button is active but not hovered, slowly revert it to being inactive.
+     * @returns 
+     */
     onUpdate() {
       if (this.active) {
         if(this.dwelled == true) {
@@ -313,7 +352,10 @@ const gui = ( p ) => {
       }
     }
   }
-
+  /**
+   * Callback method for when an axis button is activated. Activates the stop and start buttons and makes the arm move in the appropriate axis.
+   * @param {object} button - button which was activated
+   */
   function axisButtonHandler(button) {
     stopButton.enable()
 
@@ -370,6 +412,10 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * Callback for when an axis button is active and updated, sets the timeout variable if the button is being held.
+   * @param {object} button - button which was updated
+   */
   function axisButtonHeldUpdate(button) {
     // console.log(button.dwelled)
     if(button.dwelled) {
@@ -377,6 +423,10 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * Callback method for when the stop button is activated. Stops movement and resets the axis buttons.
+   * @param {object} button - button which was activated
+   */
   function stopButtonHandler(button) {
     console.log("Stop!")
     rosComm.stopMovement()
@@ -386,8 +436,13 @@ const gui = ( p ) => {
       button.enable()
     }
   }
-
+  
+  /**
+   * Callback method for when the lock button is activated. Stops movement, disables all other buttons and reveals the unlock button.
+   * @param {object} button - button which was activated
+   */
   function lockButtonHandler(button) {
+    rosComm.stopMovement()
     clearSelections()
     for (const button of buttons) {
       if (button !== lockButton && button !== unlockButton) {
@@ -400,6 +455,10 @@ const gui = ( p ) => {
     lockButton.hide()
   }
 
+  /**
+   * Callback method for when the unlock button is activated. Enables all other buttons and reveals the lock button.
+   * @param {object} button - button which was activated
+   */
   function unLockButtonHandler(button) {
     for (const button of buttons) {
       if (button !== lockButton && button !== unlockButton) {
@@ -411,22 +470,31 @@ const gui = ( p ) => {
     unlockButton.hide()
   }
 
+  /**
+   * Callback method for when the reset button is activated. Clears axis group selection, returns the arm to the starting position and stops the recording.
+   * @param {object} button - button which was activated
+   */
   function resetButtonHandler(button) {
     clearSelections()
+
     // rosComm.returnHome()
-    setForwardPosition()
-    // setTimeout(setForwardPosition, 3000)
+    // rosComm.fingerPositionSet(0, 0, 0)
+    rosComm.positionForward()
+    rosComm.setTimeout(15000)
+
     if (typeof recorder !== 'undefined') {
       recorder.stop()
     }
   }
 
   function setForwardPosition() {
-    // rosComm.fingerPositionSet(0, 0, 0)
-    rosComm.positionForward()
-    rosComm.setTimeout(15000)
+    
   }
 
+  /**
+   * Callback method for when the strafe tab button is activated. Hides all axis buttons, then unhides the strafe axis buttons. Also start the recording.
+   * @param {object} button - button which was activated
+   */
   function strafeTabButtonHandler(button) {
     for (const button of axisButtons) {
       button.hide()
@@ -439,6 +507,10 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * Callback method for when the forward/backward/grab tab button is activated. Hides all axis buttons, then unhides the forward/backward/grab axis buttons. Also start the recording.
+   * @param {object} button - button which was activated
+   */
   function forwardGrabTabButtonHandler(button) {
     for (const button of axisButtons) {
       button.hide()
@@ -451,6 +523,9 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * Clears all axis and axis group selections.
+   */
   function clearSelections() {
     for (const button of tabButtons) {
       button.reset()
@@ -462,6 +537,10 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * Adds a button to the button array and stores its dimensions relative to the canvas
+   * @param {object} button - Button to add
+   */
   function addButton(button) {
     buttons.push(button)
     buttonDimentions[button.name] = {
@@ -472,10 +551,17 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * Callback for when the stream finishes loading.
+   * @param {object} image
+   */
   function streamLoadedHandler(image) {
     streamLoaded = true
   }
 
+  /**
+   * Update all button dimensions relative to the canvas size.
+   */
   function updateButtonDimensions() {
     for (const button of buttons) {
       let dimentions = buttonDimentions[button.name]
@@ -486,18 +572,26 @@ const gui = ( p ) => {
     }
   }
 
+  /**
+   * Called by p5.js when the mouse moves, updates the cursor.
+   */
   p.mouseMoved = () => {
     if (typeof cursorObject !== 'undefined') {
       cursorObject.cursorMoved(p.mouseX, p.mouseY)
     }
   }
 
+  /**
+   * Called by p5.js when the window resizes, updates canvas and button dimensions
+   */
   p.windowResized = () => {
     updateCanvasDimensions()
     updateButtonDimensions()
   }
 
-
+  /**
+   * Updates the canvas dimensions to fill the entire window
+   */
   function updateCanvasDimensions() {
     let canvasWidth
     let canvasHeight
