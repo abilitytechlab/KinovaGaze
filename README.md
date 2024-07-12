@@ -3,6 +3,8 @@
 KinovaGaze is a system for controlling a Kinova Jaco robotic arm using gaze.
 
 # Using
+NOTE: The system has not been fully tested after documentation was added, parts may not function.
+
 Connect the Raspberry Pi to any computer over Ethernet, using a USB to Ethernet adapter if needed. Ensure the robot arm and camera are connected to the Pi over USB, then connect the Raspberry Pi to power. Wait about 2 minutes for the system to start, the hand on the arm will open when the system is ready to use.
 
 Use a web browser on a PC to access the UI. Tested to work on Chromium browsers (Edge, Chrome). Camera feed broken in the latest version of Firefox at the time of writing. Not tested on Webkit (Safari). Not compatible with Internet Explorer. Not tested on touchscreen devices.
@@ -34,17 +36,17 @@ Under the hood, the Raspberry Pi runs various services. These services are autom
 
 ROS-Noetic is used as the base for the robot arm control of KinovaGaze. Three systems are ran under ROS: The KinovaGaze ROS node, the Kinova-ROS stack, and rosbridge.
 
-### KinovaGaze ROS Node: `/`. 
+### KinovaGaze ROS Node: `/scripts/kinovagaze_node.py`, kinovagaze_ros_node.service 
 
-The root of this repro is a ROS node. The files which are part of this node are `stripts/`, `CMakeLists.txt` and `package.xml`. Other files are also stored in the node for convenience, but are not part of its function.
+The root of this repro is a ROS package. The files which are part of this package are `/scripts/kinovagaze_node.py`, `CMakeLists.txt` and `package.xml`. Other files are also stored in the package for convenience, but are not accessed via ROS.
 
 The node is responsible for receiving messages from the Web UI via rosbridge and sending commands to the robot arm via the Kinova ROS stack. 
 
-### Kinova-ROS: https://github.com/Kinovarobotics/kinova-ros
+### Kinova-ROS: https://github.com/Kinovarobotics/kinova-ros, kinova-ros.service
 
 The Kinova-ROS stack is installed alongside the KinovaGaze node to communicate with the robot arm. It is accessed via the KinovaGaze node.
 
-### rosbridge_server: https://wiki.ros.org/rosbridge_suite
+### rosbridge_server: https://wiki.ros.org/rosbridge_suite, rosbridge_server.service
 
 Rosbridge is the communication layer which translates between ROS messages for the ROS node and WebSocket JSON messages for the GUI.
 
@@ -52,7 +54,7 @@ Rosbridge is the communication layer which translates between ROS messages for t
 
 The GUI allows the user to use the system via a web interface.
 
-### GUI Server: `/gui/gui_server.py`
+### GUI Server: `/gui/gui_server.py`, kinovagaze_gui_server.service
 
 The GUI server is responsible for hosting the GUI webpages, the camera feed and all dependencies. The pages are stored under `/gui/templates/`. Dependencies are stored under `/gui/static/`.
 
@@ -64,7 +66,10 @@ Alongside the GUI stripts there are some helper scripts which contain classes us
 
 ## Systemd Services: `/services/`
 
-The `.service` files contain the Systemd rules for running the various parts of KinovaGaze, this being Kinova-ROS, the ROS node, rosbridge server and the GUI server. They are copied to `/etc/systemd/system` during install. The DHCP server is also ran via Systemd, but this is already set up when you install ISC DHCP.
+The `.service` files contain the Systemd rules for running and logging the various parts of KinovaGaze, this being Kinova-ROS, the ROS node, rosbridge server and the GUI server. They are copied to `/etc/systemd/system` during install. The DHCP server is also ran via Systemd, but this is already set up when you install ISC DHCP.
+
+To restart a service, use `sudo systemctl restart [service]`.
+To read output from a service, use `journalctl -u [service]`.
 
 ### ISC DHCP: https://www.isc.org/dhcp/
 
