@@ -70,19 +70,13 @@ class GUIServer():
         self.app = Flask(__name__)
         # self.jsglue = JSGlue(self.app)
         self.app.route('/')(self.show_gui_start_stop)
-        self.app.route('/old')(self.show_gui_old)
         self.app.route('/start-stop')(self.show_gui_start_stop)
         self.app.route('/research_start-stop')(self.show_gui_start_stop_research)
         self.app.route('/hold')(self.show_gui_hold)
         self.app.route('/research_hold')(self.show_gui_hold_research)
         self.app.route('/whack-a-button')(self.show_whack_a_button)
         self.app.route('/research_whack-a-button')(self.show_whack_a_button_research)
-        
-        self.app.route
         self.app.route('/video_feed')(self.video_feed)
-
-    def show_gui_old(self):
-        return render_template('gui_old.html')
 
     def show_gui_start_stop(self):
         return render_template('gui_start-stop.html')
