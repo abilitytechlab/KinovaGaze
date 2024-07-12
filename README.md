@@ -3,9 +3,74 @@
 KinovaGaze is a system for controlling a Kinova Jaco robotic arm using gaze.
 
 # Using
+Connect the Raspberry Pi to any computer over Ethernet, using a USB to Ethernet adapter if needed. Ensure the robot arm and camera are connected to the Pi over USB, then connect the Raspberry Pi to power. Wait about 2 minutes for the system to start, the hand on the arm will open when the system is ready to use.
 
+Use a web browser on a PC to access the UI. Tested to work on Chromium browsers (Edge, Chrome). Camera feed broken in the latest version of Firefox at the time of writing. Not tested on Webkit (Safari). Not compatible with Internet Explorer. Not tested on touchscreen devices.
 
-# Setup
+Navigate to http://192.168.137.1:5000 to access the default UI (start-stop), other UI pages are listed below.
+
+To use the UI, configure your gaze-tracker software such that the mouse cursor always follows your gaze. Buttons are activated by hovering over them, clicking is not needed.
+
+All regular pages:
+- http://192.168.137.1:5000/start-stop
+- http://192.168.137.1:5000/hold
+- http://192.168.137.1:5000/whack-a-button
+
+All pages with recorder enabled for research purposes:
+- http://192.168.137.1:5000/research_start-stop
+- http://192.168.137.1:5000/research_hold
+- http://192.168.137.1:5000/research_whack-a-button
+
+# Technical overview
+A KinovaGaze system consists of an external computer like a Raspberry Pi connected to a Kinova Jaco robot arm over usb as well as a USB camera like a webcam. The system is connected to a gaze-controlled computer over Ethernet, where various web-interfaces are available. See the diagram below.
+
+![System hardware diagram](<System diagram simplified.png>)
+
+Under the hood, the Raspberry Pi runs various services. These services are automatically ran on boot using Systemd, which will also restart them if they exit. A full diagram of the system with the various software and hardware components is included below.
+
+![System software and hardware diagram](<System diagram.png>)
+
+## ROS-Noetic: https://wiki.ros.org/noetic
+
+ROS-Noetic is used as the base for the robot arm control of KinovaGaze. Three systems are ran under ROS: The KinovaGaze ROS node, the Kinova-ROS stack, and rosbridge.
+
+### KinovaGaze ROS Node: `/`. 
+
+The root of this repro is a ROS node. The files which are part of this node are `stripts/`, `CMakeLists.txt` and `package.xml`. Other files are also stored in the node for convenience, but are not part of its function.
+
+The node is responsible for receiving messages from the Web UI via rosbridge and sending commands to the robot arm via the Kinova ROS stack. 
+
+### Kinova-ROS: https://github.com/Kinovarobotics/kinova-ros
+
+The Kinova-ROS stack is installed alongside the KinovaGaze node to communicate with the robot arm. It is accessed via the KinovaGaze node.
+
+### rosbridge_server: https://wiki.ros.org/rosbridge_suite
+
+Rosbridge is the communication layer which translates between ROS messages for the ROS node and WebSocket JSON messages for the GUI.
+
+## Web Interface: `/gui/`
+
+The GUI allows the user to use the system via a web interface.
+
+### GUI Server: `/gui/gui_server.py`
+
+The GUI server is responsible for hosting the GUI webpages, the camera feed and all dependencies. The pages are stored under `/gui/templates/`. Dependencies are stored under `/gui/static/`.
+
+### Web Interface Scripts: `/gui/static/scripts/`
+
+Part of the web interface scripts are scripts containing the main GUI logic. They are written using p5.js (https://p5js.org/), a library for writing custom graphical applications in JavaScript.  `gui_start-stop.js` and `gui_hold.js` contain the main interfaces, and `whack-a-button.js` contains a simple game. It is recommended to study the code to Whack-A-Button before editing the other interfaces, as it is simpler and more thoroughly documented.
+
+Alongside the GUI stripts there are some helper scripts which contain classes used by the GUI. These should be imported into the HTML before importing the GUI script. `gazecontrol.js` contains classes for the gaze-controlled interface system. `roscomm.js` contains a class for communicating with the ROS node. Finally `datarecorder.js` contains an optional class for recording the interface and keeping a log, it is meant for research and only included in the research variations of the webpages.
+
+## Systemd Services: `/services/`
+
+The `.service` files contain the Systemd rules for running the various parts of KinovaGaze, this being Kinova-ROS, the ROS node, rosbridge server and the GUI server. They are copied to `/etc/systemd/system` during install. The DHCP server is also ran via Systemd, but this is already set up when you install ISC DHCP.
+
+### ISC DHCP: https://www.isc.org/dhcp/
+
+ISC DHCP is a program which assignes IP addresses on a local network. This is used to allow any computer connected to the Pi's main Ethernet port to access the interfaces without further setup, but prevents this port from being used to connect to a router.
+
+# Setup from scratch
 
 ## Requirements
 To setup KinovaGaze from scratch, you'll need:
@@ -314,4 +379,20 @@ Restart=on
 RestartSec=10s
 
 [...]
+```
+
+# Finishing touches
+
+It is recommended to re-enable automatic updates if the system will be connected over a (non-metered) internet connection during use.
+
+```
+sudo systemctl enable --now unattended-upgrades
+```
+
+To remove the WiFi connection while the system is installed, edit `/etc/netplan/50-cloud-init.yaml` to remove everything under `wifis:` and then run `sudo netplan apply`
+
+To update KinovaGaze in the future:
+```
+cd ~/catkin_ws/src/kinovagaze
+git pull
 ```

@@ -2,12 +2,12 @@
 <package format="2">
   <name>kinovagaze</name>
   <version>0.0.0</version>
-  <description>The kinovagaze package</description>
+  <description>KinovaGaze</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="marrobot@gmail.com">kinovagaze</maintainer>
+  <maintainer email="marrobot@gmail.com">Marro64</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
@@ -19,13 +19,15 @@
   <!-- Url tags are optional, but multiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <!-- <url type="website">http://wiki.ros.org/kinovagaze</url> -->
+  <url type="website">https://abilitytech.nl/</url>
+  <url type="repository">https://github.com/abilitytechlab/kinovagaze</url>
 
 
   <!-- Author tags are optional, multiple are allowed, one per tag -->
   <!-- Authors do not have to be maintainers, but could be -->
   <!-- Example: -->
-  <!-- <author email="jane.doe@example.com">Jane Doe</author> -->
+  <author email="marrobot@gmail.com">Marro64</author>
+  <author email="damian.gaethofsl@live.com">damga</author>
 
 
   <!-- The *depend tags are used to specify dependencies -->
