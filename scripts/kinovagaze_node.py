@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """KinovaGaze Node
 
 This file communicates between the KinovaGaze web interface and the Kinova ROS node.
@@ -32,8 +34,6 @@ It provides the following functions:
     * kinovagaze/timeout, std_msgs.msg.Int32
         Sets the timeout value, in milliseconds
 """
-
-#!/usr/bin/env python
 import sys
 import signal
 import copy
@@ -726,7 +726,8 @@ def setup_subscribers(kinova_actions):
     rospy.loginfo("Spun up GUI and Kinova-ROS listeners")
 
 if __name__ == '__main__':
-    rospy.loginfo("Starting...")
+    print("Starting...")
+    rospy.loginfo("Starting KinovaGaze Node...")
     rospy.init_node('listener')
     kinova_actions = Kinova_Actions(prefix="j2n6s300", max_finger_value=6800)
     setup_subscribers(kinova_actions)
