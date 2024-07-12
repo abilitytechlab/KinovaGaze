@@ -170,6 +170,7 @@ const gui = ( p ) => {
     lockButton = new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, lockButtons, lockButtonHandler, "Lock", p.loadImage("static/icons/icons_lock.svg"), 1000, p.color(0, 150, 50), p.color(200, 50, 0), p.color(200, 200, 50))
     topBarButtons.push(lockButton)
     lockButtons.push(lockButton)
+    grid.set(0, 3, 1, 1)
     unlockButton = new LatchingSetButton(grid.x, grid.y, grid.w, grid.h, lockButtons, unLockButtonHandler, "Unlock", p.loadImage("static/icons/icons_unlock.svg"), 2000, p.color(200, 50, 0), p.color(0, 150, 50), p.color(200, 200, 50))
     topBarButtons.push(unlockButton)
     lockButtons.push(unlockButton)
@@ -207,7 +208,7 @@ const gui = ( p ) => {
    * Creates all the axis buttons
    */
   function createAxisButtons() {
-    let grid = new GazeControl.Grid(0, webcamY, (p.height-webcamHeight)/2, p.height*(5/7), 5, 5)
+    let grid = new GazeControl.Grid(0, p.height*(1/7), p.width, p.height*(5/7), 5, 5)
     let dwellDelay = 500
 
     grid.set(0, 0)
@@ -254,7 +255,6 @@ const gui = ( p ) => {
    */
   class LatchingSetButton extends GazeControl.Button {
     constructor(x, y, w, h, buttonSet, callback, name = undefined, label = undefined, dwellDelay = 1000, defaultColor = p.color(150, 110, 10), hoverColor = p.color(255, 230, 0), activatedColor = p.color(222, 252, 55)) {
-      console.log(label)
       super(p, x, y, w, h, name, label, dwellDelay, defaultColor, hoverColor, activatedColor)
       this.buttonSet = buttonSet
       this.callback = callback
@@ -278,7 +278,6 @@ const gui = ( p ) => {
    */
   class LatchingButton extends GazeControl.Button {
     constructor(x, y, w, h, callback, name = undefined, label = undefined, dwellDelay = 1000, defaultColor = p.color(200, 50, 0), hoverColor = p.color(200, 200, 50), activatedColor = p.color(0, 200, 50)) {
-      console.log(label)
       super(p, x, y, w, h, name, label, dwellDelay, defaultColor, hoverColor, activatedColor)
       this.callback = callback
     }
@@ -296,7 +295,6 @@ const gui = ( p ) => {
    */
   class OneTimeButton extends GazeControl.Button {
     constructor(x, y, w, h, activateCallback, unhoverCallback, name = undefined, label = undefined, dwellDelay = 1000, defaultColor = p.color(200, 50, 0), hoverColor = p.color(200, 200, 50), activatedColor = p.color(0, 200, 50)) {
-      console.log(label)
       super(p, x, y, w, h, name, label, dwellDelay, defaultColor, hoverColor, activatedColor)
       this.activateCallback = activateCallback
       this.unhoverCallback = unhoverCallback
@@ -428,7 +426,7 @@ const gui = ( p ) => {
     }
     unlockButton.unhide()
     unlockButton.enable()
-    lockButton.hide()
+    lockButton.disable()
   }
 
   /**
@@ -443,6 +441,7 @@ const gui = ( p ) => {
       }
     }
     lockButton.unhide()
+    lockButton.enable()
     unlockButton.hide()
   }
 

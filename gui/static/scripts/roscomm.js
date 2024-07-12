@@ -68,7 +68,7 @@ RosComm = class {
         })
 
         this.msg_send_publisher = new ROSLIB.Topic({
-            ros: ros,
+            ros: this.ros,
             name: "kinovagaze/msg_send",
             messageType: 'std_msgs/String'
         });

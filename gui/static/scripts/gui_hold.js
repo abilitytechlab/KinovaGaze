@@ -62,9 +62,7 @@ const gui = ( p ) => {
     createAxisButtons()
     createTopButtons()
     createBottomButtons()
-    cursorObject = new GazeControl.Cursor(p, buttons)
-    canvas.mouseOut(cursorObject.disable.bind(cursorObject))
-    canvas.mouseOver(cursorObject.enable.bind(cursorObject))
+    cursorObject = new GazeControl.Cursor(p, buttons, canvas)
 
     stream = p.createImg("/video_feed", "webcam feed", undefined, streamLoadedHandler)
     stream.hide()
@@ -206,11 +204,7 @@ const gui = ( p ) => {
    * Creates all the axis buttons
    */
   function createAxisButtons() {
-    let webcamWidth = p.width
-    let webcamHeight = p.height * (5 / 7)
-    let webcamX = 0
-    let webcamY = (p.height - webcamHeight) / 2
-    let grid = new GazeControl.Grid(webcamX, webcamY, webcamWidth, webcamHeight, 5, 5)
+    let grid = new GazeControl.Grid(0, p.height*(1/7), p.width, p.height*(5/7), 5, 5)
     let dwellDelay = 500
 
     grid.set(0, 0)
@@ -257,7 +251,6 @@ const gui = ( p ) => {
    */
   class LatchingSetButton extends GazeControl.Button {
     constructor(x, y, w, h, buttonSet, callback, name = undefined, label = undefined, dwellDelay = 1000, defaultColor = p.color(150, 110, 10), hoverColor = p.color(255, 230, 0), activatedColor = p.color(222, 252, 55)) {
-      console.log(label)
       super(p, x, y, w, h, name, label, dwellDelay, defaultColor, hoverColor, activatedColor)
       this.buttonSet = buttonSet
       this.callback = callback
@@ -281,7 +274,6 @@ const gui = ( p ) => {
    */
   class OneTimeButton extends GazeControl.Button {
     constructor(x, y, w, h, activateCallback, unhoverCallback, name = undefined, label = undefined, dwellDelay = 1000, defaultColor = p.color(200, 50, 0), hoverColor = p.color(200, 200, 50), activatedColor = p.color(0, 200, 50)) {
-      console.log(label)
       super(p, x, y, w, h, name, label, dwellDelay, defaultColor, hoverColor, activatedColor)
       this.activateCallback = activateCallback
       this.unhoverCallback = unhoverCallback
@@ -309,7 +301,6 @@ const gui = ( p ) => {
    */
   class HoldButton extends GazeControl.Button {
     constructor(x, y, w, h, activateCallback, unhoverCallback, updateCallback, timeout, name = undefined, label = undefined, dwellDelay = 1000, defaultColor = p.color(200, 50, 0), hoverColor = p.color(200, 200, 50), activatedColor = p.color(0, 200, 50)) {
-      console.log(label)
       super(p, x, y, w, h, name, label, dwellDelay, defaultColor, hoverColor, activatedColor)
       this.activateCallback = activateCallback
       this.unhoverCallback = unhoverCallback
@@ -452,7 +443,7 @@ const gui = ( p ) => {
     }
     unlockButton.unhide()
     unlockButton.enable()
-    lockButton.hide()
+    lockButton.disable()
   }
 
   /**
@@ -467,6 +458,7 @@ const gui = ( p ) => {
       }
     }
     lockButton.unhide()
+    lockButton.enable()
     unlockButton.hide()
   }
 
